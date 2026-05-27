@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 type PurchaseTicketFormProps = {
   eventSlug: string;
   disabled?: boolean;
+  disabledReason?: "sold_out" | "cancelled" | null;
 };
 
 type CheckoutResponse = {
@@ -15,6 +16,7 @@ type CheckoutResponse = {
 export function PurchaseTicketForm({
   eventSlug,
   disabled = false,
+  disabledReason = null,
 }: PurchaseTicketFormProps) {
   const [fullName, setFullName] = useState("");
   const [dni, setDni] = useState("");
@@ -147,7 +149,9 @@ export function PurchaseTicketForm({
         className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-white/20"
       >
         {disabled
-          ? "Evento agotado"
+          ? disabledReason === "cancelled"
+            ? "Evento cancelado"
+            : "Evento agotado"
           : isPending
             ? "Preparando pago..."
             : "Comprar entrada"}

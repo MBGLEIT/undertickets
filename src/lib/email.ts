@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { getEmailEnv } from "@/lib/env";
 import {
+  buildTicketPdfFilename,
   generateTicketPdfBuffer,
   generateTicketQrDataUrl,
   type TicketWithEvent,
@@ -21,6 +22,9 @@ export async function sendTicketEmail(ticket: TicketWithEvent) {
   const resend = new Resend(env.RESEND_API_KEY);
   const qrDataUrl = await generateTicketQrDataUrl(ticket.qr_code_value);
   const pdfBuffer = await generateTicketPdfBuffer(ticket);
+  const qrBase64 = qrDataUrl.split(",")[1] ?? "";
+  const pdfBase64 = pdfBuffer.toString("base64");
+  const pdfFilename = buildTicketPdfFilename(ticket);
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1b1b18;">
@@ -36,7 +40,7 @@ export async function sendTicketEmail(ticket: TicketWithEvent) {
         <p><strong>Ubicacion:</strong> ${escapeHtml(ticket.event.location)}</p>
         <p><strong>Precio:</strong> ${escapeHtml(formatPrice(ticket.event.price))}</p>
         <p><strong>Codigo de acceso:</strong> ${escapeHtml(ticket.alphanumeric_code)}</p>
-        <img src="${qrDataUrl}" alt="QR del ticket" width="220" height="220" style="display:block; margin-top: 16px;" />
+        <img src="cid:ticket-qr" alt="QR del ticket" width="220" height="220" style="display:block; margin-top: 16px;" />
       </div>
       <p>Tambien adjuntamos la entrada en PDF para que puedas guardarla o imprimirla.</p>
     </div>
@@ -49,8 +53,15 @@ export async function sendTicketEmail(ticket: TicketWithEvent) {
     html,
     attachments: [
       {
-        filename: `${ticket.event.slug}-ticket.pdf`,
-        content: pdfBuffer,
+        filename: pdfFilename,
+        content: pdfBase64,
+        contentType: "application/pdf",
+      },
+      {
+        filename: "ticket-qr.png",
+        content: qrBase64,
+        contentType: "image/png",
+        contentId: "ticket-qr",
       },
     ],
   });

@@ -1,25 +1,24 @@
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { RouteRealtimeRefresh } from "@/components/realtime/route-realtime-refresh";
 import {
   formatAdminEventDate,
   getAdminDashboardData,
 } from "@/lib/admin-data";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   const { metrics, events, recentTickets } = await getAdminDashboardData();
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-6 py-16 md:px-10">
-      <div className="space-y-3">
-        <span className="inline-flex w-fit rounded-full border border-border bg-card px-4 py-1 text-sm font-medium text-muted">
-          Dashboard
-        </span>
-        <h1 className="text-4xl font-semibold tracking-tight">
-          Ventas y asistencia
-        </h1>
-        <p className="max-w-3xl text-base leading-7 text-muted">
-          Aqui concentramos una lectura rapida del negocio: facturacion,
-          entradas emitidas, accesos consumidos y ocupacion por evento.
-        </p>
-      </div>
+      <RouteRealtimeRefresh topics={["events", "tickets"]} />
+
+      <AdminPageHeader
+        badge="Dashboard"
+        title="Ventas y asistencia"
+        description="Aqui concentramos una lectura rapida del negocio: facturacion, entradas emitidas, accesos consumidos y ocupacion por evento."
+      />
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (

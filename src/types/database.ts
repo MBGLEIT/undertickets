@@ -17,6 +17,8 @@ export type Database = {
           date: string;
           location: string;
           description: string;
+          image_url: string | null;
+          age_restriction: "+16" | "+18" | "+21" | null;
           price: number;
           capacity: number;
           status: "draft" | "published" | "sold_out" | "cancelled";
@@ -30,6 +32,8 @@ export type Database = {
           date: string;
           location: string;
           description: string;
+          image_url?: string | null;
+          age_restriction?: "+16" | "+18" | "+21" | null;
           price: number;
           capacity: number;
           status?: "draft" | "published" | "sold_out" | "cancelled";
@@ -43,6 +47,8 @@ export type Database = {
           date?: string;
           location?: string;
           description?: string;
+          image_url?: string | null;
+          age_restriction?: "+16" | "+18" | "+21" | null;
           price?: number;
           capacity?: number;
           status?: "draft" | "published" | "sold_out" | "cancelled";
@@ -102,6 +108,67 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      ticket_email_jobs: {
+        Row: {
+          ticket_id: string;
+          status: "pending" | "sent" | "failed";
+          error_message: string | null;
+          attempt_count: number;
+          last_attempt_at: string | null;
+          delivered_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          ticket_id: string;
+          status?: "pending" | "sent" | "failed";
+          error_message?: string | null;
+          attempt_count?: number;
+          last_attempt_at?: string | null;
+          delivered_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          ticket_id?: string;
+          status?: "pending" | "sent" | "failed";
+          error_message?: string | null;
+          attempt_count?: number;
+          last_attempt_at?: string | null;
+          delivered_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ticket_email_jobs_ticket_id_fkey";
+            columns: ["ticket_id"];
+            referencedRelation: "tickets";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      realtime_updates: {
+        Row: {
+          id: number;
+          topic: string;
+          resource_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          topic: string;
+          resource_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          topic?: string;
+          resource_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: {

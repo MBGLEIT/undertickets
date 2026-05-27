@@ -1,18 +1,37 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { sendTicketEmail } from "@/lib/email";
 import { getStripeEnv } from "@/lib/env";
+import { publishRealtimeUpdate } from "@/lib/realtime-updates";
 import { createStripeServerClient } from "@/lib/stripe";
-import { getTicketWithEventById } from "@/lib/ticket-documents";
+import { processTicketEmail } from "@/lib/ticket-email";
 import { issueTicketForCheckoutSession } from "@/lib/tickets";
 
 export const runtime = "nodejs";
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   const ticket = await issueTicketForCheckoutSession(session);
-  const hydratedTicket = await getTicketWithEventById(ticket.id);
-  await sendTicketEmail(hydratedTicket);
+  let emailResult;
+
+  try {
+    emailResult = await processTicketEmail(ticket.id);
+  } catch (error) {
+    console.error("Ticket creado, pero no se pudo procesar el email.", {
+      ticketId: ticket.id,
+      error,
+    });
+    return;
+  }
+
+  if (!emailResult.delivered) {
+    console.error("Ticket creado, pero el email fallo y quedo en incidencias.", {
+      ticketId: ticket.id,
+      error: emailResult.errorMessage,
+    });
+  }
+
+  await publishRealtimeUpdate("tickets", ticket.id);
+  await publishRealtimeUpdate("events", session.metadata?.eventId ?? ticket.event_id);
 }
 
 export async function POST(request: Request) {

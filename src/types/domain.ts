@@ -7,6 +7,8 @@ export type EventRecord = {
   date: string;
   location: string;
   description: string;
+  image_url: string | null;
+  age_restriction: "+16" | "+18" | "+21" | null;
   price: number;
   capacity: number;
   status: EventStatus;
@@ -40,4 +42,15 @@ export type EventTicketStatsRecord = {
   sold_tickets: number;
   used_tickets: number;
   remaining_tickets: number;
+};
+
+export type TicketEmailJobRecord = {
+  ticket_id: string;
+  status: "pending" | "sent" | "failed";
+  error_message: string | null;
+  attempt_count: number;
+  last_attempt_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  updated_at: string;
 };

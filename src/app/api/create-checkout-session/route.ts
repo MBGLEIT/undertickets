@@ -32,7 +32,14 @@ export async function POST(request: Request) {
     );
   }
 
-  if (event.remainingTickets <= 0) {
+  if (event.status === "cancelled") {
+    return NextResponse.json(
+      { error: "Este evento ha sido cancelado y no admite compras." },
+      { status: 409 },
+    );
+  }
+
+  if (event.status === "sold_out" || event.remainingTickets <= 0) {
     return NextResponse.json(
       { error: "Este evento ya no tiene entradas disponibles." },
       { status: 409 },

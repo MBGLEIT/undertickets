@@ -1,5 +1,5 @@
 export const siteConfig = {
-  name: "LocalTickets",
+  name: "UnderTickets",
   description:
-    "Plataforma de venta de entradas para conciertos pequeños y eventos locales con validación en tiempo real.",
+    "Venta de entradas para eventos locales con gestion de accesos y panel de administracion.",
 };

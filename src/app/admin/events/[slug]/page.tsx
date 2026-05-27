@@ -1,9 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { RouteRealtimeRefresh } from "@/components/realtime/route-realtime-refresh";
 import {
   formatAdminEventDate,
   getAdminEventAttendanceBySlug,
 } from "@/lib/admin-data";
+
+export const dynamic = "force-dynamic";
 
 type AdminEventAttendancePageProps = {
   params: Promise<{
@@ -58,9 +61,7 @@ function AttendanceList({
                   <p className="text-sm text-muted">DNI: {attendee.dni}</p>
                   <p className="text-sm text-muted">Telefono: {attendee.phone}</p>
                   <p className="text-sm text-muted">{attendee.email}</p>
-                  <p className="text-sm text-muted">
-                    Codigo: {attendee.code}
-                  </p>
+                  <p className="text-sm text-muted">Codigo: {attendee.code}</p>
                 </div>
 
                 <div className="text-right text-sm text-muted">
@@ -106,24 +107,18 @@ export default async function AdminEventAttendancePage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-16 md:px-10">
-      <Link href="/admin/events" className="text-sm font-medium text-muted">
-        Volver a eventos
-      </Link>
+      <RouteRealtimeRefresh topics={["tickets", "events"]} />
+
+      <AdminPageHeader
+        badge="Seguimiento de asistentes"
+        title={event.name}
+        description={`${formatAdminEventDate(event.date)} · ${event.location}`}
+        backHref="/admin/events"
+        backLabel="Volver a eventos"
+      />
 
       <section className="rounded-[2rem] border border-border bg-card p-8 shadow-[0_12px_30px_rgba(27,27,24,0.06)]">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="space-y-3">
-            <span className="inline-flex rounded-full border border-border bg-background px-4 py-1 text-sm font-medium text-muted">
-              Seguimiento de asistentes
-            </span>
-            <h1 className="text-4xl font-semibold tracking-tight">
-              {event.name}
-            </h1>
-            <p className="text-base leading-7 text-muted">
-              {formatAdminEventDate(event.date)} · {event.location}
-            </p>
-          </div>
-
+        <div className="flex flex-wrap justify-end gap-4">
           <div className="grid min-w-[280px] grid-cols-2 gap-4">
             <div className="rounded-2xl bg-background p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  buildTicketPdfFilename,
   generateTicketPdfBuffer,
   getTicketWithEventById,
 } from "@/lib/ticket-documents";
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${ticket.event.slug}-ticket.pdf"`,
+      "Content-Disposition": `attachment; filename="${buildTicketPdfFilename(ticket)}"`,
     },
   });
 }

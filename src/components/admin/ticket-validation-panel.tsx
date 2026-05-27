@@ -1,7 +1,7 @@
 "use client";
 
-import { Scanner } from "@yudiel/react-qr-scanner";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { QrScanner } from "@/components/admin/qr-scanner";
 import { formatEventDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { TicketValidationResult } from "@/lib/ticket-validation";
@@ -45,14 +45,20 @@ export function TicketValidationPanel({
 }: TicketValidationPanelProps) {
   const [manualValue, setManualValue] = useState("");
   const [scannerActive, setScannerActive] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
+  const [cameraMode, setCameraMode] = useState<"auto" | "environment" | "user">("auto");
+  const [cameraDevices, setCameraDevices] = useState<Array<{ id: string; label: string }>>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("auto");
   const [result, setResult] = useState<TicketValidationResult | null>(null);
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const lastSubmittedRef = useRef<{ value: string; at: number } | null>(null);
 
   const scannerPaused = useMemo(
-    () => !scannerActive || isPending || !validationEnabled,
-    [isPending, scannerActive, validationEnabled],
+    () => !scannerActive || isPending || !validationEnabled || !cameraReady,
+    [cameraReady, isPending, scannerActive, validationEnabled],
   );
 
   function submitValue(value: string) {
@@ -108,6 +114,159 @@ export function TicketValidationPanel({
     submitValue(rawValue);
   }
 
+  function mapScannerError(error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "No se pudo acceder a la camara.";
+
+    if (message.includes("NotReadableError")) {
+      return "La camara existe, pero no se puede iniciar ahora mismo. Cierra otras apps que puedan estar usandola y prueba con otra camara.";
+    }
+
+    if (message.includes("NotAllowedError") || message.includes("Permission denied")) {
+      return "El navegador no tiene permiso para usar la camara. Revisa los permisos del sitio.";
+    }
+
+    if (message.includes("NotFoundError")) {
+      return "No se ha encontrado una camara disponible en este dispositivo.";
+    }
+
+    if (message.includes("OverconstrainedError")) {
+      return "La camara seleccionada no esta disponible. Cambia el modo de camara y vuelve a intentarlo.";
+    }
+
+    return message;
+  }
+
+  function restartScanner() {
+    setScannerError(null);
+    setCameraReady(false);
+    setScannerKey((current) => current + 1);
+  }
+
+  function buildPreferredCameraConstraints() {
+    if (selectedDeviceId !== "auto") {
+      return {
+        video: {
+          deviceId: {
+            ideal: selectedDeviceId,
+          },
+        },
+      } satisfies MediaStreamConstraints;
+    }
+
+    if (cameraMode === "auto") {
+      return {
+        video: true,
+      } satisfies MediaStreamConstraints;
+    }
+
+    return {
+      video: {
+        facingMode: {
+          ideal: cameraMode,
+        },
+      },
+    } satisfies MediaStreamConstraints;
+  }
+
+  async function loadCameraDevices() {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+      return;
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices
+      .filter((device) => device.kind === "videoinput")
+      .map((device, index) => ({
+        id: device.deviceId,
+        label: device.label || `Camara ${index + 1}`,
+      }));
+
+    setCameraDevices(videoDevices);
+
+    if (selectedDeviceId !== "auto" && !videoDevices.some((device) => device.id === selectedDeviceId)) {
+      setSelectedDeviceId("auto");
+    }
+  }
+
+  useEffect(() => {
+    void loadCameraDevices();
+  }, []);
+
+  useEffect(() => {
+    if (!scannerActive || !validationEnabled || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setCameraReady(false);
+      setCameraLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function prepareCamera() {
+      setCameraLoading(true);
+      setScannerError(null);
+
+      try {
+        let stream: MediaStream | null = null;
+
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(
+            buildPreferredCameraConstraints(),
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+
+          if (!message.includes("OverconstrainedError")) {
+            throw error;
+          }
+
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+        }
+
+        stream.getTracks().forEach((track) => track.stop());
+        await loadCameraDevices();
+
+        if (!cancelled) {
+          setCameraReady(true);
+          setScannerKey((current) => current + 1);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCameraReady(false);
+          setScannerError(mapScannerError(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setCameraLoading(false);
+        }
+      }
+    }
+
+    void prepareCamera();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraMode, scannerActive, selectedDeviceId, validationEnabled]);
+
+  const scannerConstraints =
+    selectedDeviceId !== "auto"
+      ? {
+          deviceId: {
+            ideal: selectedDeviceId,
+          },
+        }
+      : cameraMode === "auto"
+        ? {}
+        : {
+            facingMode: {
+              ideal: cameraMode,
+            },
+          };
+
   return (
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
       <section className="rounded-[2rem] border border-border bg-card p-6 shadow-[0_12px_30px_rgba(27,27,24,0.06)]">
@@ -123,7 +282,10 @@ export function TicketValidationPanel({
 
           <button
             type="button"
-            onClick={() => setScannerActive((current) => !current)}
+            onClick={() => {
+              setScannerError(null);
+              setScannerActive((current) => !current);
+            }}
             disabled={!validationEnabled}
             className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
@@ -131,30 +293,92 @@ export function TicketValidationPanel({
           </button>
         </div>
 
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <span>Camara</span>
+            <select
+              value={cameraMode}
+              onChange={(event) => {
+                setCameraMode(
+                  event.target.value as "auto" | "environment" | "user",
+                );
+                setSelectedDeviceId("auto");
+                restartScanner();
+              }}
+              className="rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
+            >
+              <option value="auto">Automatica</option>
+              <option value="environment">Trasera</option>
+              <option value="user">Delantera</option>
+            </select>
+          </label>
+
+          {cameraDevices.length > 0 ? (
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <span>Dispositivo</span>
+              <select
+                value={selectedDeviceId}
+                onChange={(event) => {
+                  setSelectedDeviceId(event.target.value);
+                  restartScanner();
+                }}
+                className="rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
+              >
+                <option value="auto">Seleccion automatica</option>
+                {cameraDevices.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={restartScanner}
+            disabled={!scannerActive}
+            className="rounded-full border border-border bg-white/80 px-4 py-2 text-sm font-semibold text-[#171512] transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            Reiniciar camara
+          </button>
+        </div>
+
         <div className="overflow-hidden rounded-[1.5rem] border border-border bg-[#171512]">
-          <Scanner
-            paused={scannerPaused}
-            allowMultiple={false}
-            constraints={{ facingMode: "environment" }}
-            onScan={(codes) => {
-              const code = codes[0];
+          {scannerActive && validationEnabled && cameraLoading ? (
+            <div className="flex min-h-72 flex-col items-center justify-center gap-3 px-6 text-center text-sm leading-7 text-white/72">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
+              <p>Intentando iniciar la camara seleccionada...</p>
+            </div>
+          ) : scannerActive && validationEnabled && cameraReady ? (
+            <QrScanner
+              key={scannerKey}
+              paused={scannerPaused}
+              allowMultiple={false}
+              constraints={scannerConstraints}
+              onScan={(codes) => {
+                const code = codes[0];
 
-              if (!code?.rawValue) {
-                return;
-              }
+                if (!code?.rawValue) {
+                  return;
+                }
 
-              setScannerError(null);
-              handleScan(code.rawValue);
-            }}
-            onError={(error) => {
-              const message =
-                error instanceof Error
-                  ? error.message
-                  : "No se pudo acceder a la camara.";
-
-              setScannerError(message);
-            }}
-          />
+                setScannerError(null);
+                handleScan(code.rawValue);
+              }}
+              onError={(error) => {
+                setScannerError(mapScannerError(error));
+              }}
+            />
+          ) : (
+            <div className="flex min-h-72 items-center justify-center px-6 text-center text-sm leading-7 text-white/72">
+              {validationEnabled
+                ? scannerError
+                  ? "La camara no ha podido iniciarse. Puedes cambiar el dispositivo o usar la validacion manual."
+                  : "La camara se activara aqui cuando pulses el boton de escaneo."
+                : "La validacion aun no esta activada en este entorno."}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 space-y-2 text-sm text-muted">

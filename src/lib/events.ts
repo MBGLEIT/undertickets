@@ -1,6 +1,7 @@
-import { getPublicEnv } from "@/lib/env";
+import { unstable_noStore as noStore } from "next/cache";
+import { getPublicEnv, hasSupabaseServerEnvConfig } from "@/lib/env";
 import { mockEvents } from "@/lib/mock/events";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 import type { EventStatus } from "@/types/domain";
 
@@ -11,6 +12,8 @@ export type PublicEvent = {
   date: string;
   location: string;
   description: string;
+  imageUrl: string | null;
+  ageRestriction: "+16" | "+18" | "+21" | null;
   price: number;
   capacity: number;
   status: EventStatus;
@@ -37,6 +40,8 @@ function mapEventWithStats(
     date: event.date,
     location: event.location,
     description: event.description,
+    imageUrl: event.image_url,
+    ageRestriction: event.age_restriction,
     price: event.price,
     capacity: event.capacity,
     status: event.status,
@@ -46,81 +51,91 @@ function mapEventWithStats(
 }
 
 export async function getPublishedEvents() {
-  if (!getPublicEnvSafe()) {
+  noStore();
+
+  if (!getPublicEnvSafe() && !hasSupabaseServerEnvConfig()) {
     return mockEvents;
   }
 
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = createSupabaseAdminClient();
 
-  const [{ data: events, error: eventsError }, { data: stats, error: statsError }] =
-    await Promise.all([
-      supabase
-        .from("events")
-        .select("*")
-        .eq("status", "published")
-        .order("date", { ascending: true }),
-      supabase.from("event_ticket_stats").select("*"),
-    ]);
+    const [{ data: events, error: eventsError }, { data: stats, error: statsError }] =
+      await Promise.all([
+        supabase
+          .from("events")
+          .select("*")
+          .in("status", ["published", "sold_out", "cancelled"])
+          .order("date", { ascending: true }),
+        supabase.from("event_ticket_stats").select("*"),
+      ]);
 
-  if (eventsError) {
-    throw new Error(`No se pudieron cargar los eventos: ${eventsError.message}`);
-  }
+    if (eventsError) {
+      throw new Error(eventsError.message);
+    }
 
-  if (statsError) {
-    throw new Error(
-      `No se pudieron cargar las estadisticas de eventos: ${statsError.message}`,
+    if (statsError) {
+      throw new Error(statsError.message);
+    }
+
+    const typedEvents = events as Database["public"]["Tables"]["events"]["Row"][];
+    const typedStats =
+      stats as Database["public"]["Views"]["event_ticket_stats"]["Row"][];
+    const statsByEventId = new Map(typedStats.map((item) => [item.id, item]));
+
+    return typedEvents.map((event) =>
+      mapEventWithStats(event, statsByEventId.get(event.id)),
     );
+  } catch (error) {
+    console.error("Fallo cargando eventos publicados; devolviendo lista vacia.", error);
+    return [];
   }
-
-  const typedEvents = events as Database["public"]["Tables"]["events"]["Row"][];
-  const typedStats =
-    stats as Database["public"]["Views"]["event_ticket_stats"]["Row"][];
-  const statsByEventId = new Map(typedStats.map((item) => [item.id, item]));
-
-  return typedEvents.map((event) =>
-    mapEventWithStats(event, statsByEventId.get(event.id)),
-  );
 }
 
 export async function getPublishedEventBySlug(slug: string) {
-  if (!getPublicEnvSafe()) {
+  noStore();
+
+  if (!getPublicEnvSafe() && !hasSupabaseServerEnvConfig()) {
     return mockEvents.find((event) => event.slug === slug) ?? null;
   }
 
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = createSupabaseAdminClient();
 
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select("*")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("*")
+      .eq("slug", slug)
+      .in("status", ["published", "sold_out", "cancelled"])
+      .maybeSingle();
 
-  if (eventError) {
-    throw new Error(`No se pudo cargar el evento: ${eventError.message}`);
-  }
+    if (eventError) {
+      throw new Error(eventError.message);
+    }
 
-  if (!event) {
+    if (!event) {
+      return null;
+    }
+
+    const typedEvent = event as Database["public"]["Tables"]["events"]["Row"];
+
+    const { data: stats, error: statsError } = await supabase
+      .from("event_ticket_stats")
+      .select("*")
+      .eq("id", typedEvent.id)
+      .maybeSingle();
+
+    if (statsError) {
+      throw new Error(statsError.message);
+    }
+
+    return mapEventWithStats(
+      typedEvent,
+      (stats as Database["public"]["Views"]["event_ticket_stats"]["Row"] | null) ??
+        undefined,
+    );
+  } catch (error) {
+    console.error(`Fallo cargando el evento ${slug}; devolviendo null.`, error);
     return null;
   }
-
-  const typedEvent = event as Database["public"]["Tables"]["events"]["Row"];
-
-  const { data: stats, error: statsError } = await supabase
-    .from("event_ticket_stats")
-    .select("*")
-    .eq("id", typedEvent.id)
-    .maybeSingle();
-
-  if (statsError) {
-    throw new Error(
-      `No se pudieron cargar las estadisticas del evento: ${statsError.message}`,
-    );
-  }
-
-  return mapEventWithStats(
-    typedEvent,
-    (stats as Database["public"]["Views"]["event_ticket_stats"]["Row"] | null) ??
-      undefined,
-  );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publishRealtimeUpdate } from "@/lib/realtime-updates";
 import { z } from "zod";
 import { validateTicketByLookup } from "@/lib/ticket-validation";
 
@@ -22,6 +23,11 @@ export async function POST(request: Request) {
   }
 
   const result = await validateTicketByLookup(parsedBody.data.value);
+
+  if (result.status === "validated") {
+    await publishRealtimeUpdate("tickets", result.ticket?.id ?? null);
+  }
+
   const responseStatus =
     result.status === "validated"
       ? 200

@@ -6,6 +6,10 @@ type ScannerModuleProps = {
   paused?: boolean;
   allowMultiple?: boolean;
   constraints?: MediaTrackConstraints;
+  classNames?: {
+    container?: string;
+    video?: string;
+  };
   onScan: (codes: Array<{ rawValue?: string }>) => void;
   onError?: (error: unknown) => void;
 };

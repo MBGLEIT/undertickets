@@ -9,7 +9,7 @@ export default function AdminScanCameraPage() {
   const validationEnabled = hasSupabaseServerEnvConfig();
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-1 flex-col gap-3 overflow-hidden px-3 py-3 md:gap-8 md:px-8 md:py-14">
+    <main className="mx-auto flex h-[100dvh] w-full max-w-5xl flex-1 flex-col gap-3 overflow-hidden px-3 py-3 md:min-h-[100dvh] md:gap-8 md:px-8 md:py-14">
       <RouteRealtimeRefresh topics={["tickets"]} />
 
       <div className="hidden md:block">

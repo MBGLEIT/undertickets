@@ -518,14 +518,14 @@ export function TicketValidationPanel({
           {resultCard}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 md:hidden">
-          <section className="relative flex min-h-0 flex-[0.58] overflow-hidden rounded-[1.75rem] border border-border bg-[#171512] shadow-[0_12px_30px_rgba(27,27,24,0.08)]">
+        <div className="flex h-full min-h-0 flex-1 flex-col gap-3 md:hidden">
+          <section className="relative flex min-h-[14rem] flex-[0.66] overflow-hidden rounded-[1.75rem] border border-border bg-[#171512] shadow-[0_12px_30px_rgba(27,27,24,0.08)]">
             <div className="absolute left-3 top-3 z-20 flex items-start gap-2">
               <button
                 type="button"
                 onClick={toggleScanner}
                 disabled={!validationEnabled}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/68 text-white backdrop-blur transition hover:bg-black/78 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/16 bg-black/72 text-white shadow-[0_10px_20px_rgba(0,0,0,0.28)] backdrop-blur transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label={scannerActive ? "Detener camara" : "Activar camara"}
               >
                 {scannerActive ? (
@@ -539,7 +539,7 @@ export function TicketValidationPanel({
                 <button
                   type="button"
                   onClick={() => setCameraMenuOpen((current) => !current)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/68 text-white backdrop-blur transition hover:bg-black/78"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/16 bg-black/72 text-white shadow-[0_10px_20px_rgba(0,0,0,0.28)] backdrop-blur transition hover:bg-black/80"
                   aria-label="Opciones de camara"
                 >
                   <svg
@@ -618,7 +618,7 @@ export function TicketValidationPanel({
 
             <Link
               href="/admin/scan"
-              className="absolute bottom-3 right-3 z-20 inline-flex items-center rounded-full bg-black/68 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-black/78"
+              className="absolute bottom-3 right-3 z-20 inline-flex items-center rounded-full border border-white/16 bg-black/72 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(0,0,0,0.28)] backdrop-blur transition hover:bg-black/80"
             >
               Volver a modos
             </Link>
@@ -635,6 +635,9 @@ export function TicketValidationPanel({
                   paused={scannerPaused}
                   allowMultiple={false}
                   constraints={scannerConstraints}
+                  classNames={{
+                    container: "undertickets-mobile-scanner",
+                  }}
                   onScan={(codes) => {
                     const code = codes[0];
 
@@ -651,7 +654,7 @@ export function TicketValidationPanel({
                 />
               </div>
             ) : (
-              <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-sm leading-7 text-white/72">
+              <div className="flex min-h-0 flex-1 items-center justify-center px-6 pt-12 text-center text-sm leading-7 text-white/78">
                 {validationEnabled
                   ? scannerError ?? "Pulsa el boton para activar la camara."
                   : "La validacion aun no esta activada en este entorno."}
@@ -661,7 +664,7 @@ export function TicketValidationPanel({
 
           <article
             className={cn(
-              "min-h-0 flex-[0.42] overflow-hidden rounded-[1.75rem] border p-4 shadow-[0_12px_30px_rgba(27,27,24,0.06)]",
+              "min-h-[11rem] flex-[0.34] overflow-hidden rounded-[1.75rem] border p-4 shadow-[0_12px_30px_rgba(27,27,24,0.06)]",
               result ? resultStyles[result.status].container : "border-border bg-card",
             )}
           >

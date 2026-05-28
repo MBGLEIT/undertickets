@@ -52,3 +52,8 @@ button {
 ::selection {
   background: color-mix(in srgb, var(--accent) 20%, white);
 }
+
+.undertickets-mobile-scanner div[style*="bottom:35px"][style*="right:8px"] {
+  left: 8px !important;
+  right: auto !important;
+}

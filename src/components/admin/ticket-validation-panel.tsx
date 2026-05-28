@@ -8,7 +8,7 @@ import type { TicketValidationResult } from "@/lib/ticket-validation";
 
 type TicketValidationPanelProps = {
   validationEnabled: boolean;
-  mode: "camera" | "manual";
+  mode: "camera" | "manual" | "combined";
 };
 
 const resultStyles: Record<
@@ -273,6 +273,7 @@ export function TicketValidationPanel({
     <article
       className={cn(
         "rounded-[2rem] border p-6 shadow-[0_12px_30px_rgba(27,27,24,0.06)]",
+        mode === "camera" && "p-4 md:p-6",
         result ? resultStyles[result.status].container : "border-border bg-card",
       )}
     >
@@ -295,7 +296,12 @@ export function TicketValidationPanel({
           <p className="text-sm leading-6">{result.message}</p>
 
           {result.ticket ? (
-            <div className="space-y-2 rounded-2xl border border-black/6 bg-white/60 p-4 text-sm">
+            <div
+              className={cn(
+                "space-y-2 rounded-2xl border border-black/6 bg-white/60 p-4 text-sm",
+                mode === "camera" && "space-y-1.5 p-3 text-[13px] leading-6 md:p-4 md:text-sm",
+              )}
+            >
               <p>
                 <strong>Asistente:</strong> {result.ticket.fullName}
               </p>
@@ -335,79 +341,77 @@ export function TicketValidationPanel({
     </article>
   );
 
-  if (mode === "camera") {
-    return (
-      <div className="space-y-6">
-        <section className="rounded-[2rem] border border-border bg-card p-6 shadow-[0_12px_30px_rgba(27,27,24,0.06)]">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+  const cameraSection = (
+        <section className="rounded-[2rem] border border-border bg-card p-4 shadow-[0_12px_30px_rgba(27,27,24,0.06)] md:p-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
+              <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
                 Escanear con camara
               </h2>
-              <p className="mt-2 text-sm leading-6 text-muted">
+              <p className="mt-1 text-sm leading-6 text-muted">
                 Enfoca el QR desde el movil y revisa abajo el resultado del acceso.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setScannerError(null);
-                setScannerActive((current) => !current);
-              }}
-              disabled={!validationEnabled}
-              className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {scannerActive ? "Detener camara" : "Activar camara"}
-            </button>
-          </div>
+        <button
+          type="button"
+          onClick={() => {
+            setScannerError(null);
+            setScannerActive((current) => !current);
+          }}
+          disabled={!validationEnabled}
+          className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-zinc-300"
+        >
+          {scannerActive ? "Detener camara" : "Activar camara"}
+        </button>
+      </div>
 
-          <div className="mb-5 flex flex-wrap items-center gap-3">
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
             <label className="flex items-center gap-2 text-sm text-muted">
               <span>Camara</span>
               <select
-                value={cameraMode}
-                onChange={(event) => {
-                  setCameraMode(
-                    event.target.value as "auto" | "environment" | "user",
-                  );
-                  setSelectedDeviceId("auto");
-                  restartScanner();
-                }}
-                className="rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
+            value={cameraMode}
+            onChange={(event) => {
+              setCameraMode(
+                event.target.value as "auto" | "environment" | "user",
+              );
+              setSelectedDeviceId("auto");
+              restartScanner();
+            }}
+                className="rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
               >
-                <option value="auto">Automatica</option>
-                <option value="environment">Trasera</option>
-                <option value="user">Delantera</option>
-              </select>
-            </label>
+            <option value="auto">Automatica</option>
+            <option value="environment">Trasera</option>
+            <option value="user">Delantera</option>
+          </select>
+        </label>
 
-            {cameraDevices.length > 0 ? (
-              <label className="flex items-center gap-2 text-sm text-muted">
-                <span>Dispositivo</span>
-                <select
-                  value={selectedDeviceId}
-                  onChange={(event) => {
-                    setSelectedDeviceId(event.target.value);
-                    restartScanner();
-                  }}
-                  className="rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
+        {cameraDevices.length > 0 ? (
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <span>Dispositivo</span>
+            <select
+              value={selectedDeviceId}
+              onChange={(event) => {
+                setSelectedDeviceId(event.target.value);
+                restartScanner();
+              }}
+                  className="rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
                 >
-                  <option value="auto">Seleccion automatica</option>
-                  {cameraDevices.map((device) => (
-                    <option key={device.id} value={device.id}>
-                      {device.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
+              <option value="auto">Seleccion automatica</option>
+              {cameraDevices.map((device) => (
+                <option key={device.id} value={device.id}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
-            <button
-              type="button"
-              onClick={restartScanner}
-              disabled={!scannerActive}
-              className="rounded-full border border-border bg-white/80 px-4 py-2 text-sm font-semibold text-[#171512] transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-55"
+        <button
+          type="button"
+          onClick={restartScanner}
+          disabled={!scannerActive}
+              className="rounded-full border border-border bg-white/80 px-3 py-2 text-sm font-semibold text-[#171512] transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-55"
             >
               Reiniciar camara
             </button>
@@ -415,95 +419,116 @@ export function TicketValidationPanel({
 
           <div className="overflow-hidden rounded-[1.5rem] border border-border bg-[#171512]">
             {scannerActive && validationEnabled && cameraLoading ? (
-              <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center text-sm leading-7 text-white/72">
+              <div className="flex min-h-[15.5rem] flex-col items-center justify-center gap-3 px-4 text-center text-sm leading-7 text-white/72 md:min-h-[24rem] md:px-6">
                 <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
                 <p>Intentando iniciar la camara seleccionada...</p>
               </div>
-            ) : scannerActive && validationEnabled && cameraReady ? (
-              <QrScanner
-                key={scannerKey}
-                paused={scannerPaused}
-                allowMultiple={false}
-                constraints={scannerConstraints}
-                onScan={(codes) => {
-                  const code = codes[0];
+        ) : scannerActive && validationEnabled && cameraReady ? (
+          <QrScanner
+            key={scannerKey}
+            paused={scannerPaused}
+            allowMultiple={false}
+            constraints={scannerConstraints}
+            onScan={(codes) => {
+              const code = codes[0];
 
-                  if (!code?.rawValue) {
-                    return;
-                  }
+              if (!code?.rawValue) {
+                return;
+              }
 
-                  setScannerError(null);
-                  handleScan(code.rawValue);
-                }}
-                onError={(error) => {
-                  setScannerError(mapScannerError(error));
-                }}
-              />
-            ) : (
-              <div className="flex min-h-[24rem] items-center justify-center px-6 text-center text-sm leading-7 text-white/72">
+              setScannerError(null);
+              handleScan(code.rawValue);
+            }}
+            onError={(error) => {
+              setScannerError(mapScannerError(error));
+            }}
+          />
+        ) : (
+              <div className="flex min-h-[15.5rem] items-center justify-center px-4 text-center text-sm leading-7 text-white/72 md:min-h-[24rem] md:px-6">
                 {validationEnabled
                   ? scannerError
                     ? "La camara no ha podido iniciarse. Puedes cambiar el dispositivo o usar la validacion manual."
-                    : "La camara se activara aqui cuando pulses el boton de escaneo."
-                  : "La validacion aun no esta activada en este entorno."}
-              </div>
-            )}
+                : "La camara se activara aqui cuando pulses el boton de escaneo."
+              : "La validacion aun no esta activada en este entorno."}
           </div>
+        )}
+      </div>
 
-          <div className="mt-4 space-y-2 text-sm text-muted">
+          <div className="mt-3 space-y-1.5 text-xs leading-6 text-muted md:mt-4 md:space-y-2 md:text-sm">
             <p>
               Si es la primera vez, el navegador te pedira permiso para usar la
               camara del dispositivo.
             </p>
-            <p>
+            <p className="hidden md:block">
               El QR puede contener `ticket:uuid` o directamente el identificador
               del ticket.
             </p>
-            {scannerError ? (
-              <p className="text-[rgb(155,36,36)]">{scannerError}</p>
-            ) : null}
-          </div>
-        </section>
+        {scannerError ? (
+          <p className="text-[rgb(155,36,36)]">{scannerError}</p>
+        ) : null}
+      </div>
+    </section>
+  );
 
+  const manualSection = (
+      <article className="rounded-[2rem] border border-border bg-card p-5 shadow-[0_12px_30px_rgba(27,27,24,0.06)] md:p-6">
+      <h2 className="text-2xl font-semibold tracking-tight">
+        Validacion manual
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-muted">
+        Introduce el QR o el codigo alfanumerico y revisa debajo el resultado.
+      </p>
+
+      <form className="mt-6 space-y-4" onSubmit={handleManualSubmit}>
+        <label className="block space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            QR o codigo
+          </span>
+          <input
+            type="text"
+            value={manualValue}
+            onChange={(event) => setManualValue(event.target.value)}
+            placeholder="ticket:uuid o ABCD1234"
+            className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent"
+          />
+        </label>
+
+        <button
+          type="submit"
+          disabled={isPending || !validationEnabled}
+          className="w-full rounded-full bg-[#1f1d1a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-zinc-300"
+        >
+          {isPending ? "Validando..." : "Validar ticket"}
+        </button>
+      </form>
+    </article>
+  );
+
+  if (mode === "camera") {
+    return (
+      <div className="space-y-6">
+        {cameraSection}
         {resultCard}
+      </div>
+    );
+  }
+
+  if (mode === "combined") {
+    return (
+      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        {cameraSection}
+
+        <section className="space-y-6">
+          {manualSection}
+          {resultCard}
+        </section>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <article className="rounded-[2rem] border border-border bg-card p-6 shadow-[0_12px_30px_rgba(27,27,24,0.06)]">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Validacion manual
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-muted">
-          Introduce el QR o el codigo alfanumerico y revisa debajo el resultado.
-        </p>
-
-        <form className="mt-6 space-y-4" onSubmit={handleManualSubmit}>
-          <label className="block space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-              QR o codigo
-            </span>
-            <input
-              type="text"
-              value={manualValue}
-              onChange={(event) => setManualValue(event.target.value)}
-              placeholder="ticket:uuid o ABCD1234"
-              className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent"
-            />
-          </label>
-
-          <button
-            type="submit"
-            disabled={isPending || !validationEnabled}
-            className="w-full rounded-full bg-[#1f1d1a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-zinc-300"
-          >
-            {isPending ? "Validando..." : "Validar ticket"}
-          </button>
-        </form>
-      </article>
-
+      {manualSection}
       {resultCard}
     </div>
   );

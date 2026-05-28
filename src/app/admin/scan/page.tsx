@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ScanModeCard } from "@/components/admin/scan-mode-card";
+import { TicketValidationPanel } from "@/components/admin/ticket-validation-panel";
 import { RouteRealtimeRefresh } from "@/components/realtime/route-realtime-refresh";
 import { hasSupabaseServerEnvConfig } from "@/lib/env";
 
@@ -25,7 +26,24 @@ export default function AdminScanPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <div className="hidden lg:block">
+        {validationEnabled ? (
+          <div className="space-y-4">
+            <div className="rounded-[1.5rem] border border-border bg-card px-5 py-4 text-sm leading-7 text-muted">
+              En escritorio mantenemos la vista combinada para trabajar mas
+              rapido. En movil puedes entrar a los modos separados.
+            </div>
+            <div>
+              <TicketValidationPanel
+                validationEnabled={validationEnabled}
+                mode="combined"
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <section className="grid gap-6 lg:hidden">
         <ScanModeCard
           href="/admin/scan/camera"
           title="Escaneo con camara"

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { QrScanner } from "@/components/admin/qr-scanner";
 import { formatEventDate } from "@/lib/formatters";
@@ -55,6 +56,7 @@ export function TicketValidationPanel({
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
+  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const lastSubmittedRef = useRef<{ value: string; at: number } | null>(null);
 
@@ -100,11 +102,7 @@ export function TicketValidationPanel({
     const now = Date.now();
     const previous = lastSubmittedRef.current;
 
-    if (
-      previous &&
-      previous.value === rawValue &&
-      now - previous.at < 3000
-    ) {
+    if (previous && previous.value === rawValue && now - previous.at < 3000) {
       return;
     }
 
@@ -143,6 +141,11 @@ export function TicketValidationPanel({
     setScannerError(null);
     setCameraReady(false);
     setScannerKey((current) => current + 1);
+  }
+
+  function toggleScanner() {
+    setScannerError(null);
+    setScannerActive((current) => !current);
   }
 
   function buildPreferredCameraConstraints() {
@@ -186,7 +189,10 @@ export function TicketValidationPanel({
 
     setCameraDevices(videoDevices);
 
-    if (selectedDeviceId !== "auto" && !videoDevices.some((device) => device.id === selectedDeviceId)) {
+    if (
+      selectedDeviceId !== "auto" &&
+      !videoDevices.some((device) => device.id === selectedDeviceId)
+    ) {
       setSelectedDeviceId("auto");
     }
   }
@@ -196,7 +202,12 @@ export function TicketValidationPanel({
   }, []);
 
   useEffect(() => {
-    if (!scannerActive || !validationEnabled || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    if (
+      !scannerActive ||
+      !validationEnabled ||
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
       setCameraReady(false);
       setCameraLoading(false);
       return;
@@ -216,8 +227,7 @@ export function TicketValidationPanel({
             buildPreferredCameraConstraints(),
           );
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error);
 
           if (!message.includes("OverconstrainedError")) {
             throw error;
@@ -269,6 +279,53 @@ export function TicketValidationPanel({
             },
           };
 
+  const resultContent = result ? (
+    <div className="space-y-4">
+      <p className="text-sm leading-6">{result.message}</p>
+
+      {result.ticket ? (
+        <div
+          className={cn(
+            "space-y-2 rounded-2xl border border-black/6 bg-white/60 p-4 text-sm",
+            mode === "camera" && "space-y-1.5 p-3 text-[13px] leading-6 md:p-4 md:text-sm",
+          )}
+        >
+          <p>
+            <strong>Asistente:</strong> {result.ticket.fullName}
+          </p>
+          <p>
+            <strong>DNI:</strong> {result.ticket.dni}
+          </p>
+          <p>
+            <strong>Telefono:</strong> {result.ticket.phone}
+          </p>
+          <p>
+            <strong>Email:</strong> {result.ticket.email}
+          </p>
+          <p>
+            <strong>Evento:</strong> {result.ticket.eventName}
+          </p>
+          <p>
+            <strong>Fecha:</strong> {formatEventDate(result.ticket.eventDate)}
+          </p>
+          <p>
+            <strong>Ubicacion:</strong> {result.ticket.eventLocation}
+          </p>
+          <p>
+            <strong>Codigo:</strong> {result.ticket.alphanumericCode}
+          </p>
+          <p>
+            <strong>Estado:</strong> {result.ticket.used ? "Usado" : "Pendiente"}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  ) : (
+    <p className="text-sm leading-6 text-muted">
+      Aqui veras la respuesta del sistema despues de cada escaneo o validacion manual.
+    </p>
+  );
+
   const resultCard = (
     <article
       className={cn(
@@ -291,74 +348,25 @@ export function TicketValidationPanel({
         ) : null}
       </div>
 
-      {result ? (
-        <div className="space-y-4">
-          <p className="text-sm leading-6">{result.message}</p>
-
-          {result.ticket ? (
-            <div
-              className={cn(
-                "space-y-2 rounded-2xl border border-black/6 bg-white/60 p-4 text-sm",
-                mode === "camera" && "space-y-1.5 p-3 text-[13px] leading-6 md:p-4 md:text-sm",
-              )}
-            >
-              <p>
-                <strong>Asistente:</strong> {result.ticket.fullName}
-              </p>
-              <p>
-                <strong>DNI:</strong> {result.ticket.dni}
-              </p>
-              <p>
-                <strong>Telefono:</strong> {result.ticket.phone}
-              </p>
-              <p>
-                <strong>Email:</strong> {result.ticket.email}
-              </p>
-              <p>
-                <strong>Evento:</strong> {result.ticket.eventName}
-              </p>
-              <p>
-                <strong>Fecha:</strong> {formatEventDate(result.ticket.eventDate)}
-              </p>
-              <p>
-                <strong>Ubicacion:</strong> {result.ticket.eventLocation}
-              </p>
-              <p>
-                <strong>Codigo:</strong> {result.ticket.alphanumericCode}
-              </p>
-              <p>
-                <strong>Estado:</strong> {result.ticket.used ? "Usado" : "Pendiente"}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <p className="text-sm leading-6 text-muted">
-          Aqui veras la respuesta del sistema despues de cada escaneo o
-          validacion manual.
-        </p>
-      )}
+      {resultContent}
     </article>
   );
 
   const cameraSection = (
-        <section className="rounded-[2rem] border border-border bg-card p-4 shadow-[0_12px_30px_rgba(27,27,24,0.06)] md:p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
-                Escanear con camara
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                Enfoca el QR desde el movil y revisa abajo el resultado del acceso.
-              </p>
-            </div>
+    <section className="rounded-[2rem] border border-border bg-card p-4 shadow-[0_12px_30px_rgba(27,27,24,0.06)] md:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+            Escanear con camara
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-muted">
+            Enfoca el QR desde el movil y revisa abajo el resultado del acceso.
+          </p>
+        </div>
 
         <button
           type="button"
-          onClick={() => {
-            setScannerError(null);
-            setScannerActive((current) => !current);
-          }}
+          onClick={toggleScanner}
           disabled={!validationEnabled}
           className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-zinc-300"
         >
@@ -366,10 +374,10 @@ export function TicketValidationPanel({
         </button>
       </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-2.5">
-            <label className="flex items-center gap-2 text-sm text-muted">
-              <span>Camara</span>
-              <select
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <span>Camara</span>
+          <select
             value={cameraMode}
             onChange={(event) => {
               setCameraMode(
@@ -378,8 +386,8 @@ export function TicketValidationPanel({
               setSelectedDeviceId("auto");
               restartScanner();
             }}
-                className="rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-              >
+            className="rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+          >
             <option value="auto">Automatica</option>
             <option value="environment">Trasera</option>
             <option value="user">Delantera</option>
@@ -395,8 +403,8 @@ export function TicketValidationPanel({
                 setSelectedDeviceId(event.target.value);
                 restartScanner();
               }}
-                  className="rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
-                >
+              className="rounded-full border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+            >
               <option value="auto">Seleccion automatica</option>
               {cameraDevices.map((device) => (
                 <option key={device.id} value={device.id}>
@@ -411,18 +419,18 @@ export function TicketValidationPanel({
           type="button"
           onClick={restartScanner}
           disabled={!scannerActive}
-              className="rounded-full border border-border bg-white/80 px-3 py-2 text-sm font-semibold text-[#171512] transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              Reiniciar camara
-            </button>
-          </div>
+          className="rounded-full border border-border bg-white/80 px-3 py-2 text-sm font-semibold text-[#171512] transition hover:bg-card disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          Reiniciar camara
+        </button>
+      </div>
 
-          <div className="overflow-hidden rounded-[1.5rem] border border-border bg-[#171512]">
-            {scannerActive && validationEnabled && cameraLoading ? (
-              <div className="flex min-h-[15.5rem] flex-col items-center justify-center gap-3 px-4 text-center text-sm leading-7 text-white/72 md:min-h-[24rem] md:px-6">
-                <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
-                <p>Intentando iniciar la camara seleccionada...</p>
-              </div>
+      <div className="overflow-hidden rounded-[1.5rem] border border-border bg-[#171512]">
+        {scannerActive && validationEnabled && cameraLoading ? (
+          <div className="flex min-h-[15.5rem] flex-col items-center justify-center gap-3 px-4 text-center text-sm leading-7 text-white/72 md:min-h-[24rem] md:px-6">
+            <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
+            <p>Intentando iniciar la camara seleccionada...</p>
+          </div>
         ) : scannerActive && validationEnabled && cameraReady ? (
           <QrScanner
             key={scannerKey}
@@ -444,25 +452,25 @@ export function TicketValidationPanel({
             }}
           />
         ) : (
-              <div className="flex min-h-[15.5rem] items-center justify-center px-4 text-center text-sm leading-7 text-white/72 md:min-h-[24rem] md:px-6">
-                {validationEnabled
-                  ? scannerError
-                    ? "La camara no ha podido iniciarse. Puedes cambiar el dispositivo o usar la validacion manual."
+          <div className="flex min-h-[15.5rem] items-center justify-center px-4 text-center text-sm leading-7 text-white/72 md:min-h-[24rem] md:px-6">
+            {validationEnabled
+              ? scannerError
+                ? "La camara no ha podido iniciarse. Puedes cambiar el dispositivo o usar la validacion manual."
                 : "La camara se activara aqui cuando pulses el boton de escaneo."
               : "La validacion aun no esta activada en este entorno."}
           </div>
         )}
       </div>
 
-          <div className="mt-3 space-y-1.5 text-xs leading-6 text-muted md:mt-4 md:space-y-2 md:text-sm">
-            <p>
-              Si es la primera vez, el navegador te pedira permiso para usar la
-              camara del dispositivo.
-            </p>
-            <p className="hidden md:block">
-              El QR puede contener `ticket:uuid` o directamente el identificador
-              del ticket.
-            </p>
+      <div className="mt-3 space-y-1.5 text-xs leading-6 text-muted md:mt-4 md:space-y-2 md:text-sm">
+        <p>
+          Si es la primera vez, el navegador te pedira permiso para usar la camara
+          del dispositivo.
+        </p>
+        <p className="hidden md:block">
+          El QR puede contener `ticket:uuid` o directamente el identificador del
+          ticket.
+        </p>
         {scannerError ? (
           <p className="text-[rgb(155,36,36)]">{scannerError}</p>
         ) : null}
@@ -471,10 +479,8 @@ export function TicketValidationPanel({
   );
 
   const manualSection = (
-      <article className="rounded-[2rem] border border-border bg-card p-5 shadow-[0_12px_30px_rgba(27,27,24,0.06)] md:p-6">
-      <h2 className="text-2xl font-semibold tracking-tight">
-        Validacion manual
-      </h2>
+    <article className="rounded-[2rem] border border-border bg-card p-5 shadow-[0_12px_30px_rgba(27,27,24,0.06)] md:p-6">
+      <h2 className="text-2xl font-semibold tracking-tight">Validacion manual</h2>
       <p className="mt-2 text-sm leading-6 text-muted">
         Introduce el QR o el codigo alfanumerico y revisa debajo el resultado.
       </p>
@@ -506,10 +512,177 @@ export function TicketValidationPanel({
 
   if (mode === "camera") {
     return (
-      <div className="space-y-6">
-        {cameraSection}
-        {resultCard}
-      </div>
+      <>
+        <div className="hidden space-y-6 md:block">
+          {cameraSection}
+          {resultCard}
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3 md:hidden">
+          <section className="relative flex min-h-0 flex-[0.58] overflow-hidden rounded-[1.75rem] border border-border bg-[#171512] shadow-[0_12px_30px_rgba(27,27,24,0.08)]">
+            <div className="absolute left-3 top-3 z-20 flex items-start gap-2">
+              <button
+                type="button"
+                onClick={toggleScanner}
+                disabled={!validationEnabled}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/68 text-white backdrop-blur transition hover:bg-black/78 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={scannerActive ? "Detener camara" : "Activar camara"}
+              >
+                {scannerActive ? (
+                  <span className="h-3.5 w-3.5 rounded-sm bg-white" />
+                ) : (
+                  <span className="ml-0.5 h-0 w-0 border-y-[8px] border-l-[13px] border-y-transparent border-l-white" />
+                )}
+              </button>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCameraMenuOpen((current) => !current)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/68 text-white backdrop-blur transition hover:bg-black/78"
+                  aria-label="Opciones de camara"
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className={cn(
+                      "h-5 w-5 transition-transform",
+                      cameraMenuOpen && "rotate-180",
+                    )}
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 7.5L10 12.5L15 7.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {cameraMenuOpen ? (
+                  <div className="absolute left-0 top-14 z-30 w-[16rem] rounded-[1.4rem] border border-white/18 bg-black/84 p-3 text-white shadow-[0_18px_38px_rgba(0,0,0,0.35)] backdrop-blur">
+                    <div className="space-y-3">
+                      <label className="block space-y-1.5 text-xs">
+                        <span className="font-semibold uppercase tracking-[0.16em] text-white/72">
+                          Camara
+                        </span>
+                        <select
+                          value={cameraMode}
+                          onChange={(event) => {
+                            setCameraMode(
+                              event.target.value as "auto" | "environment" | "user",
+                            );
+                            setSelectedDeviceId("auto");
+                            restartScanner();
+                            setCameraMenuOpen(false);
+                          }}
+                          className="w-full rounded-2xl border border-white/12 bg-white/8 px-3 py-2.5 text-sm text-white outline-none focus:border-white/35"
+                        >
+                          <option value="auto">Automatica</option>
+                          <option value="environment">Trasera</option>
+                          <option value="user">Delantera</option>
+                        </select>
+                      </label>
+
+                      {cameraDevices.length > 0 ? (
+                        <label className="block space-y-1.5 text-xs">
+                          <span className="font-semibold uppercase tracking-[0.16em] text-white/72">
+                            Dispositivo
+                          </span>
+                          <select
+                            value={selectedDeviceId}
+                            onChange={(event) => {
+                              setSelectedDeviceId(event.target.value);
+                              restartScanner();
+                              setCameraMenuOpen(false);
+                            }}
+                            className="w-full rounded-2xl border border-white/12 bg-white/8 px-3 py-2.5 text-sm text-white outline-none focus:border-white/35"
+                          >
+                            <option value="auto">Seleccion automatica</option>
+                            {cameraDevices.map((device) => (
+                              <option key={device.id} value={device.id}>
+                                {device.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <Link
+              href="/admin/scan"
+              className="absolute bottom-3 right-3 z-20 inline-flex items-center rounded-full bg-black/68 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-black/78"
+            >
+              Volver a modos
+            </Link>
+
+            {scannerActive && validationEnabled && cameraLoading ? (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 text-center text-sm leading-7 text-white/72">
+                <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
+                <p>Iniciando camara...</p>
+              </div>
+            ) : scannerActive && validationEnabled && cameraReady ? (
+              <div className="min-h-0 flex-1">
+                <QrScanner
+                  key={scannerKey}
+                  paused={scannerPaused}
+                  allowMultiple={false}
+                  constraints={scannerConstraints}
+                  onScan={(codes) => {
+                    const code = codes[0];
+
+                    if (!code?.rawValue) {
+                      return;
+                    }
+
+                    setScannerError(null);
+                    handleScan(code.rawValue);
+                  }}
+                  onError={(error) => {
+                    setScannerError(mapScannerError(error));
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-sm leading-7 text-white/72">
+                {validationEnabled
+                  ? scannerError ?? "Pulsa el boton para activar la camara."
+                  : "La validacion aun no esta activada en este entorno."}
+              </div>
+            )}
+          </section>
+
+          <article
+            className={cn(
+              "min-h-0 flex-[0.42] overflow-hidden rounded-[1.75rem] border p-4 shadow-[0_12px_30px_rgba(27,27,24,0.06)]",
+              result ? resultStyles[result.status].container : "border-border bg-card",
+            )}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold tracking-tight">Resultado</h2>
+              {result ? (
+                <span
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[11px] font-semibold",
+                    resultStyles[result.status].badge,
+                  )}
+                >
+                  {resultStyles[result.status].label}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="min-h-0 overflow-y-auto pr-1">{resultContent}</div>
+          </article>
+        </div>
+      </>
     );
   }
 

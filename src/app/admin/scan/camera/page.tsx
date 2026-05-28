@@ -9,16 +9,18 @@ export default function AdminScanCameraPage() {
   const validationEnabled = hasSupabaseServerEnvConfig();
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-1 flex-col gap-5 px-4 py-4 md:gap-8 md:px-8 md:py-14">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-5xl flex-1 flex-col gap-3 overflow-hidden px-3 py-3 md:gap-8 md:px-8 md:py-14">
       <RouteRealtimeRefresh topics={["tickets"]} />
 
-      <AdminPageHeader
-        badge="Modo camara"
-        title="Escaneo de QR"
-        description="Vista pensada para usar desde movil. La camara queda arriba y el resultado del ticket aparece justo debajo."
-        backHref="/admin/scan"
-        backLabel="Volver a modos"
-      />
+      <div className="hidden md:block">
+        <AdminPageHeader
+          badge="Modo camara"
+          title="Escaneo de QR"
+          description="Vista pensada para usar desde movil. La camara queda arriba y el resultado del ticket aparece justo debajo."
+          backHref="/admin/scan"
+          backLabel="Volver a modos"
+        />
+      </div>
 
       {!validationEnabled ? (
         <div className="rounded-[1.75rem] border border-[rgba(40,52,86,0.16)] bg-[rgba(40,52,86,0.08)] p-5 text-sm leading-7 text-[rgb(40,52,86)]">
@@ -27,7 +29,9 @@ export default function AdminScanCameraPage() {
         </div>
       ) : null}
 
-      <TicketValidationPanel validationEnabled={validationEnabled} mode="camera" />
+      <div className="min-h-0 flex-1">
+        <TicketValidationPanel validationEnabled={validationEnabled} mode="camera" />
+      </div>
     </main>
   );
 }

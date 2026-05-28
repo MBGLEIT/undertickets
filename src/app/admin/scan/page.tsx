@@ -28,18 +28,10 @@ export default function AdminScanPage() {
 
       <div className="hidden lg:block">
         {validationEnabled ? (
-          <div className="space-y-4">
-            <div className="rounded-[1.5rem] border border-border bg-card px-5 py-4 text-sm leading-7 text-muted">
-              En escritorio mantenemos la vista combinada para trabajar mas
-              rapido. En movil puedes entrar a los modos separados.
-            </div>
-            <div>
-              <TicketValidationPanel
-                validationEnabled={validationEnabled}
-                mode="combined"
-              />
-            </div>
-          </div>
+          <TicketValidationPanel
+            validationEnabled={validationEnabled}
+            mode="combined"
+          />
         ) : null}
       </div>
 

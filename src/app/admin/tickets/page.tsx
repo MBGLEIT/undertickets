@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   createManualTicketAction,
   deleteTicketAction,
+  reactivateTicketAction,
   retryTicketEmailAction,
 } from "@/app/admin/actions";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
@@ -18,13 +19,14 @@ type AdminTicketsPageProps = {
     emailRetried?: string;
     emailRetryFailed?: string;
     ticketDeleted?: string;
+    ticketReactivated?: string;
   }>;
 };
 
 export default async function AdminTicketsPage({
   searchParams,
 }: AdminTicketsPageProps) {
-  const [{ created, emailError, emailRetried, emailRetryFailed, ticketDeleted }, { events, tickets, failedEmailTickets }] = await Promise.all([
+  const [{ created, emailError, emailRetried, emailRetryFailed, ticketDeleted, ticketReactivated }, { events, tickets, failedEmailTickets }] = await Promise.all([
     searchParams,
     getAdminTicketOverview(),
   ]);
@@ -39,12 +41,12 @@ export default async function AdminTicketsPage({
         description="Genera entradas para invitados o incidencias y revisa todas las entradas ya creadas o compradas desde un solo sitio."
       />
 
-      {created || emailError || emailRetried || emailRetryFailed || ticketDeleted ? (
+      {created || emailError || emailRetried || emailRetryFailed || ticketDeleted || ticketReactivated ? (
         <div
           className={`rounded-2xl border px-5 py-4 text-sm ${
             emailRetryFailed
               ? "border-[rgba(155,36,36,0.16)] bg-[rgba(155,36,36,0.08)] text-[rgb(155,36,36)]"
-              : ticketDeleted
+              : ticketDeleted || ticketReactivated
                 ? "border-[rgba(26,112,74,0.18)] bg-[rgba(26,112,74,0.08)] text-[rgb(26,112,74)]"
               : emailError
                 ? "border-[rgba(179,93,0,0.16)] bg-[rgba(179,93,0,0.08)] text-[rgb(140,76,8)]"
@@ -55,6 +57,8 @@ export default async function AdminTicketsPage({
             ? "La entrada existe, pero el email sigue fallando. La tienes en Entradas con errores."
             : ticketDeleted
               ? "Entrada retirada correctamente."
+            : ticketReactivated
+              ? "Entrada reactivada correctamente. Vuelve a estar pendiente de uso."
             : emailError
               ? "Entrada creada correctamente, pero el email no se pudo enviar. Puedes revisarlo en Entradas con errores."
               : emailRetried
@@ -147,6 +151,16 @@ export default async function AdminTicketsPage({
                       className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
                     >
                       Reenviar correo
+                    </button>
+                  </form>
+
+                  <form action={reactivateTicketAction}>
+                    <input type="hidden" name="ticketId" value={ticket.ticketId} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-[rgba(26,112,74,0.18)] px-5 py-3 text-sm font-semibold text-[rgb(26,112,74)] transition hover:bg-[rgba(26,112,74,0.08)]"
+                    >
+                      Reactivar entrada
                     </button>
                   </form>
 
@@ -254,6 +268,16 @@ export default async function AdminTicketsPage({
                       className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
                     >
                       Reenviar correo
+                    </button>
+                  </form>
+
+                  <form action={reactivateTicketAction}>
+                    <input type="hidden" name="ticketId" value={ticket.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-[rgba(26,112,74,0.18)] px-5 py-3 text-sm font-semibold text-[rgb(26,112,74)] transition hover:bg-[rgba(26,112,74,0.08)]"
+                    >
+                      Reactivar entrada
                     </button>
                   </form>
 

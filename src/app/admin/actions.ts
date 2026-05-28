@@ -89,6 +89,13 @@ function getTicketsTableClient() {
         error: { message: string } | null;
       }>;
     };
+    update: (
+      values: Database["public"]["Tables"]["tickets"]["Update"],
+    ) => {
+      eq: (column: "id", value: string) => Promise<{
+        error: { message: string } | null;
+      }>;
+    };
   };
 }
 
@@ -377,4 +384,33 @@ export async function deleteTicketAction(formData: FormData) {
   await publishRealtimeUpdate("tickets", ticketId);
   await publishRealtimeUpdate("events");
   redirect("/admin/tickets?ticketDeleted=1");
+}
+
+export async function reactivateTicketAction(formData: FormData) {
+  const ticketsTable = getTicketsTableClient();
+  const ticketId = String(formData.get("ticketId") ?? "");
+
+  if (!ticketId) {
+    redirect("/admin/tickets?ticketReactivated=0");
+  }
+
+  const { error } = await ticketsTable
+    .update({
+      used: false,
+      used_at: null,
+    })
+    .eq("id", ticketId);
+
+  if (error) {
+    throw new Error(`No se pudo reactivar la entrada: ${error.message}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/events");
+  revalidatePath("/admin/tickets");
+  revalidatePath("/admin/scan");
+  await publishRealtimeUpdate("tickets", ticketId);
+  await publishRealtimeUpdate("events");
+  redirect("/admin/tickets?ticketReactivated=1");
 }

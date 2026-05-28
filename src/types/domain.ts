@@ -20,6 +20,7 @@ export type TicketRecord = {
   id: string;
   event_id: string;
   full_name: string;
+  age: number;
   dni: string;
   phone: string;
   email: string;

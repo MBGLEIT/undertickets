@@ -118,6 +118,15 @@ export function ManualTicketForm({ action, events }: ManualTicketFormProps) {
         className="rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent"
       />
       <input
+        name="age"
+        type="number"
+        min="0"
+        max="120"
+        required
+        placeholder="Edad"
+        className="rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent"
+      />
+      <input
         name="dni"
         required
         placeholder="DNI"

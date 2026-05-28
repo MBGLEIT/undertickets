@@ -26,8 +26,8 @@ const resultStyles: Record<
     label: "Acceso valido",
   },
   already_used: {
-    container: "border-[rgba(179,93,0,0.16)] bg-[rgba(179,93,0,0.08)]",
-    badge: "bg-[rgba(179,93,0,0.14)] text-[rgb(140,76,8)]",
+    container: "border-[rgba(155,36,36,0.16)] bg-[rgba(155,36,36,0.08)]",
+    badge: "bg-[rgba(155,36,36,0.14)] text-[rgb(155,36,36)]",
     label: "Ya utilizado",
   },
   not_found: {
@@ -292,6 +292,9 @@ export function TicketValidationPanel({
         >
           <p>
             <strong>Asistente:</strong> {result.ticket.fullName}
+          </p>
+          <p>
+            <strong>Edad:</strong> {result.ticket.age}
           </p>
           <p>
             <strong>DNI:</strong> {result.ticket.dni}
@@ -618,7 +621,7 @@ export function TicketValidationPanel({
 
             <Link
               href="/admin/scan"
-              className="absolute bottom-3 right-3 z-20 inline-flex items-center rounded-full border border-white/16 bg-black/72 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(0,0,0,0.28)] backdrop-blur transition hover:bg-black/80"
+              className="absolute bottom-3 left-16 z-20 inline-flex items-center rounded-full border border-white/16 bg-black/72 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(0,0,0,0.28)] backdrop-blur transition hover:bg-black/80"
             >
               Volver a modos
             </Link>

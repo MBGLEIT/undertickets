@@ -53,6 +53,7 @@ export type AdminEventFormRecord = {
 export type AdminAttendee = {
   id: string;
   fullName: string;
+  age: number;
   dni: string;
   phone: string;
   email: string;
@@ -74,6 +75,7 @@ export type AdminTicketOverview = {
   eventName: string;
   eventSlug: string;
   fullName: string;
+  age: number;
   dni: string;
   phone: string;
   email: string;
@@ -136,6 +138,7 @@ function buildMockAttendees(event: AdminEventSummary) {
     return {
       id: `${event.slug}-ticket-${index + 1}`,
       fullName: `Asistente ${index + 1} ${event.name}`,
+      age: 18 + (index % 10),
       dni: `0000000${(index % 9) + 1}A`,
       phone: `+34 600 000 ${String(index + 1).padStart(3, "0")}`,
       email: `asistente${index + 1}@${event.slug}.local`,
@@ -248,7 +251,7 @@ export async function getAdminEventAttendanceBySlug(slug: string) {
     const { data, error } = await supabase
       .from("tickets")
       .select(
-        "id, full_name, dni, phone, email, used, used_at, alphanumeric_code, created_at, event_id",
+        "id, full_name, age, dni, phone, email, used, used_at, alphanumeric_code, created_at, event_id",
       )
       .eq("event_id", event.id)
       .order("created_at", { ascending: true });
@@ -260,6 +263,7 @@ export async function getAdminEventAttendanceBySlug(slug: string) {
     const attendees = (data as unknown as Array<{
       id: string;
       full_name: string;
+      age: number;
       dni: string;
       phone: string;
       email: string;
@@ -270,6 +274,7 @@ export async function getAdminEventAttendanceBySlug(slug: string) {
     }>).map((ticket) => ({
       id: ticket.id,
       fullName: ticket.full_name,
+      age: ticket.age,
       dni: ticket.dni,
       phone: ticket.phone,
       email: ticket.email,
@@ -424,6 +429,7 @@ export async function getAdminTicketOverview() {
         eventName: event.name,
         eventSlug: event.slug,
         fullName: ticket.fullName,
+        age: ticket.age,
         dni: ticket.dni,
         phone: ticket.phone,
         email: ticket.email,
@@ -448,7 +454,7 @@ export async function getAdminTicketOverview() {
       supabase
       .from("tickets")
       .select(
-        "id, event_id, full_name, dni, phone, email, used, used_at, alphanumeric_code, created_at, events(name, slug), ticket_email_jobs(status)",
+        "id, event_id, full_name, age, dni, phone, email, used, used_at, alphanumeric_code, created_at, events(name, slug), ticket_email_jobs(status)",
       )
       .order("created_at", { ascending: false }),
       supabase
@@ -472,6 +478,7 @@ export async function getAdminTicketOverview() {
       id: string;
       event_id: string;
       full_name: string;
+      age: number;
       dni: string;
       phone: string;
       email: string;
@@ -509,6 +516,7 @@ export async function getAdminTicketOverview() {
         eventName: event?.name ?? "Evento sin nombre",
         eventSlug: event?.slug ?? "sin-evento",
         fullName: ticket.full_name,
+        age: ticket.age,
         dni: ticket.dni,
         phone: ticket.phone,
         email: ticket.email,

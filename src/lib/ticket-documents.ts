@@ -1,11 +1,12 @@
 import QRCode from "qrcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { formatEventDate, formatPrice } from "@/lib/formatters";
+import { formatEventShortDate, formatPrice } from "@/lib/formatters";
 
 export type TicketWithEvent = {
   id: string;
   full_name: string;
+  age: number;
   dni: string;
   phone: string;
   email: string;
@@ -113,7 +114,7 @@ export async function getTicketWithEventById(ticketId: string) {
   const { data, error } = await supabase
     .from("tickets")
     .select(
-      "id, full_name, dni, phone, email, used, used_at, stripe_session_id, qr_code_value, alphanumeric_code, created_at, events(id, slug, name, date, location, description, price, capacity, status)",
+      "id, full_name, age, dni, phone, email, used, used_at, stripe_session_id, qr_code_value, alphanumeric_code, created_at, events(id, slug, name, date, location, description, price, capacity, status)",
     )
     .eq("id", ticketId)
     .single();
@@ -125,6 +126,7 @@ export async function getTicketWithEventById(ticketId: string) {
   const ticketRow = data as unknown as {
     id: string;
     full_name: string;
+    age: number;
     dni: string;
     phone: string;
     email: string;
@@ -148,6 +150,7 @@ export async function getTicketWithEventById(ticketId: string) {
   return {
     id: ticketRow.id,
     full_name: ticketRow.full_name,
+    age: ticketRow.age,
     dni: ticketRow.dni,
     phone: ticketRow.phone,
     email: ticketRow.email,
@@ -221,20 +224,12 @@ export async function generateTicketPdfBuffer(ticket: TicketWithEvent) {
     color: rgb(0.12, 0.11, 0.1),
   });
 
-  page.drawText(ticket.full_name, {
-    x: 46,
-    y: 646,
-    size: 14,
-    font: bodyFont,
-    color: rgb(0.37, 0.34, 0.3),
-  });
-
   const lines = [
-    { label: "Fecha", value: formatEventDate(ticket.event.date), maxChars: 28 },
-    { label: "Ubicacion", value: ticket.event.location, maxChars: 28 },
+    { label: "Nombre y apellidos", value: ticket.full_name, maxChars: 28 },
     { label: "DNI", value: ticket.dni, maxChars: 28 },
     { label: "Telefono", value: ticket.phone, maxChars: 28 },
-    { label: "Email", value: ticket.email, maxChars: 28 },
+    { label: "Ubicacion", value: ticket.event.location, maxChars: 28 },
+    { label: "Fecha", value: formatEventShortDate(ticket.event.date), maxChars: 28 },
     { label: "Precio", value: formatPrice(ticket.event.price), maxChars: 28 },
     { label: "Codigo", value: ticket.alphanumeric_code, maxChars: 28 },
     { label: "Ticket ID", value: ticket.id, maxChars: 28 },
@@ -258,7 +253,7 @@ export async function generateTicketPdfBuffer(ticket: TicketWithEvent) {
     color: rgb(0.12, 0.11, 0.1),
   });
 
-  let lineY = 610;
+  let lineY = 616;
 
   lines.forEach((line) => {
     const wrappedLines = wrapText(`${line.label}: ${line.value}`, line.maxChars);

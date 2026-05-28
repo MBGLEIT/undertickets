@@ -206,6 +206,7 @@ export default async function AdminTicketsPage({
                     <h3 className="text-xl font-semibold">{ticket.fullName}</h3>
                     <p className="text-sm text-muted">{ticket.eventName}</p>
                     <p className="text-sm text-muted">{ticket.email}</p>
+                    <p className="text-sm text-muted">Edad: {ticket.age}</p>
                     <p className="text-sm text-muted">DNI: {ticket.dni}</p>
                     <p className="text-sm text-muted">Telefono: {ticket.phone}</p>
                   </div>

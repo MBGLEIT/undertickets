@@ -88,7 +88,11 @@ export default async function AdminEventsPage({
           </p>
         </div>
 
-        <form action={createEventAction} className="grid gap-4 md:grid-cols-2">
+        <form
+          action={createEventAction}
+          encType="multipart/form-data"
+          className="grid gap-4 md:grid-cols-2"
+        >
           <input
             name="name"
             required
@@ -128,9 +132,23 @@ export default async function AdminEventsPage({
           />
           <input
             name="imageUrl"
-            placeholder="URL de imagen o cartel del evento"
+            placeholder="URL de imagen opcional si no subes cartel"
             className="rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent md:col-span-2"
           />
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              Cartel del evento
+            </label>
+            <input
+              type="file"
+              name="poster"
+              accept="image/png,image/jpeg,image/webp,image/jpg"
+              className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none file:mr-4 file:rounded-full file:border-0 file:bg-[#171512] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+            />
+            <p className="text-xs leading-6 text-muted">
+              Puedes subir el cartel directamente. Si subes archivo, tendra prioridad sobre la URL.
+            </p>
+          </div>
           <select
             name="status"
             defaultValue="draft"
@@ -218,8 +236,13 @@ export default async function AdminEventsPage({
               </Link>
             </div>
 
-            <form action={updateEventAction} className="grid gap-4 md:grid-cols-2">
+            <form
+              action={updateEventAction}
+              encType="multipart/form-data"
+              className="grid gap-4 md:grid-cols-2"
+            >
               <input type="hidden" name="id" value={event.id} />
+              <input type="hidden" name="currentImageUrl" value={event.imageUrl ?? ""} />
               <input
                 name="name"
                 defaultValue={event.name}
@@ -262,9 +285,43 @@ export default async function AdminEventsPage({
               <input
                 name="imageUrl"
                 defaultValue={event.imageUrl ?? ""}
-                placeholder="URL de imagen o cartel del evento"
+                placeholder="URL de imagen opcional si no subes cartel"
                 className="rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent md:col-span-2"
               />
+              <div className="space-y-3 md:col-span-2">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                    Sustituir cartel
+                  </label>
+                  <input
+                    type="file"
+                    name="poster"
+                    accept="image/png,image/jpeg,image/webp,image/jpg"
+                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none file:mr-4 file:rounded-full file:border-0 file:bg-[#171512] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  />
+                </div>
+                {event.imageUrl ? (
+                  <div className="space-y-3 rounded-2xl border border-border bg-background/70 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                      Cartel actual
+                    </p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={event.imageUrl}
+                      alt={`Cartel de ${event.name}`}
+                      className="h-48 w-full rounded-2xl object-cover"
+                    />
+                    <label className="flex items-center gap-3 text-sm text-muted">
+                      <input type="checkbox" name="removePoster" className="h-4 w-4" />
+                      Eliminar cartel actual
+                    </label>
+                  </div>
+                ) : (
+                  <p className="text-xs leading-6 text-muted">
+                    Este evento todavia no tiene cartel guardado.
+                  </p>
+                )}
+              </div>
               <select
                 name="status"
                 defaultValue={event.status}

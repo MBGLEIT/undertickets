@@ -15,6 +15,7 @@ export type TicketValidationResult = {
   ticket: null | {
     id: string;
     fullName: string;
+    age: number;
     dni: string;
     phone: string;
     email: string;
@@ -92,6 +93,7 @@ function serializeTicket(ticket: Awaited<ReturnType<typeof getTicketWithEventByI
   return {
     id: ticket.id,
     fullName: ticket.full_name,
+    age: ticket.age,
     dni: ticket.dni,
     phone: ticket.phone,
     email: ticket.email,

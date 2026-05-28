@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ADMIN_PASSWORD, clearAdminSession, createAdminSession } from "@/lib/admin-auth";
+import { isAgeAllowedForRestriction } from "@/lib/age-restrictions";
+import { deleteEventPosterByUrl, uploadEventPoster } from "@/lib/event-posters";
 import { publishRealtimeUpdate } from "@/lib/realtime-updates";
 import { processTicketEmail } from "@/lib/ticket-email";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -126,7 +128,8 @@ export async function createEventAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const imageUrlInput = String(formData.get("imageUrl") ?? "").trim() || null;
+  const posterFile = formData.get("poster") as File | null;
   const ageRestriction =
     (String(formData.get("ageRestriction") ?? "").trim() as "+16" | "+18" | "+21") ||
     null;
@@ -153,6 +156,15 @@ export async function createEventAction(formData: FormData) {
   if (existingSlug) {
     slug = `${slug}-${Date.now().toString().slice(-5)}`;
   }
+
+  const uploadedPoster =
+    posterFile && posterFile.size > 0
+      ? await uploadEventPoster({
+          eventSlug: slug,
+          file: posterFile,
+        })
+      : null;
+  const imageUrl = uploadedPoster?.publicUrl ?? imageUrlInput;
 
   const { error } = await eventsTable.insert({
     slug,
@@ -186,7 +198,10 @@ export async function updateEventAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim() || null;
+  const imageUrlInput = String(formData.get("imageUrl") ?? "").trim() || null;
+  const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
+  const removePoster = String(formData.get("removePoster") ?? "") === "on";
+  const posterFile = formData.get("poster") as File | null;
   const ageRestriction =
     (String(formData.get("ageRestriction") ?? "").trim() as "+16" | "+18" | "+21") ||
     null;
@@ -198,6 +213,19 @@ export async function updateEventAction(formData: FormData) {
   const capacity = Number(formData.get("capacity") ?? 0);
   const date = String(formData.get("date") ?? "");
   const price = parseEuroToCents(String(formData.get("price") ?? ""));
+
+  let imageUrl = removePoster ? null : imageUrlInput;
+
+  if (posterFile && posterFile.size > 0) {
+    const uploadedPoster = await uploadEventPoster({
+      eventSlug: slug || normalizeSlug(name) || id,
+      file: posterFile,
+    });
+
+    imageUrl = uploadedPoster?.publicUrl ?? imageUrl;
+  } else if (!imageUrlInput && !removePoster) {
+    imageUrl = currentImageUrl;
+  }
 
   const { error } = await eventsTable
     .update({
@@ -218,6 +246,10 @@ export async function updateEventAction(formData: FormData) {
     throw new Error(`No se pudo actualizar el evento: ${error.message}`);
   }
 
+  if ((posterFile && posterFile.size > 0) || removePoster) {
+    await deleteEventPosterByUrl(currentImageUrl);
+  }
+
   revalidatePath("/admin");
   revalidatePath("/admin/events");
   revalidatePath("/admin/dashboard");
@@ -228,13 +260,22 @@ export async function updateEventAction(formData: FormData) {
 
 export async function deleteEventAction(formData: FormData) {
   const eventsTable = getEventsTableClient();
+  const supabase = createSupabaseAdminClient();
   const id = String(formData.get("id") ?? "");
+  const { data: existingEvent } = await supabase
+    .from("events")
+    .select("image_url")
+    .eq("id", id)
+    .maybeSingle();
 
   const { error } = await eventsTable.delete().eq("id", id);
 
   if (error) {
     throw new Error(`No se pudo eliminar el evento: ${error.message}`);
   }
+
+  const typedExistingEvent = existingEvent as { image_url: string | null } | null;
+  await deleteEventPosterByUrl(typedExistingEvent?.image_url);
 
   revalidatePath("/admin");
   revalidatePath("/admin/events");
@@ -249,11 +290,12 @@ export async function createManualTicketAction(formData: FormData) {
   const ticketsTable = getTicketsTableClient();
   const eventId = String(formData.get("eventId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
+  const age = Number(formData.get("age") ?? 0);
   const dni = String(formData.get("dni") ?? "").trim().toUpperCase();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
-  if (!eventId || !fullName || !dni || !phone || !email) {
+  if (!eventId || !fullName || !dni || !phone || !email || !Number.isFinite(age) || age <= 0) {
     throw new Error("Faltan datos obligatorios para generar la entrada.");
   }
 
@@ -262,12 +304,24 @@ export async function createManualTicketAction(formData: FormData) {
     .select("*")
     .eq("id", eventId)
     .maybeSingle();
+  const { data: eventDetails, error: eventDetailsError } = await supabase
+    .from("events")
+    .select("age_restriction")
+    .eq("id", eventId)
+    .maybeSingle();
 
   if (statsError) {
     throw new Error(`No se pudo comprobar el aforo del evento: ${statsError.message}`);
   }
 
+  if (eventDetailsError) {
+    throw new Error(
+      `No se pudo comprobar la restriccion de edad del evento: ${eventDetailsError.message}`,
+    );
+  }
+
   const typedEventStats = eventStats as EventTicketStatsRecord | null;
+  const typedEventDetails = eventDetails as { age_restriction: "+16" | "+18" | "+21" | null } | null;
 
   if (!typedEventStats) {
     throw new Error("El evento seleccionado no existe.");
@@ -275,6 +329,12 @@ export async function createManualTicketAction(formData: FormData) {
 
   if (typedEventStats.remaining_tickets <= 0) {
     throw new Error("Ese evento ya no tiene entradas disponibles.");
+  }
+
+  if (!isAgeAllowedForRestriction(age, typedEventDetails?.age_restriction ?? null)) {
+    throw new Error(
+      `No se puede generar la entrada porque el evento requiere edad minima ${typedEventDetails?.age_restriction}.`,
+    );
   }
 
   const ticketId = crypto.randomUUID();
@@ -286,6 +346,7 @@ export async function createManualTicketAction(formData: FormData) {
     id: ticketId,
     event_id: eventId,
     full_name: fullName,
+    age,
     dni,
     phone,
     email,

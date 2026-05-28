@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isAgeAllowedForRestriction } from "@/lib/age-restrictions";
 import { getPublishedEventBySlug } from "@/lib/events";
 import { getStripeEnv } from "@/lib/env";
 import { createStripeServerClient } from "@/lib/stripe";
@@ -7,6 +8,7 @@ import { createStripeServerClient } from "@/lib/stripe";
 const createCheckoutSessionSchema = z.object({
   eventSlug: z.string().min(1),
   fullName: z.string().trim().min(5).max(120),
+  age: z.number().int().min(0).max(120),
   dni: z.string().trim().min(8).max(16),
   phone: z.string().trim().min(7).max(20),
   email: z.string().email(),
@@ -43,6 +45,15 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Este evento ya no tiene entradas disponibles." },
       { status: 409 },
+    );
+  }
+
+  if (!isAgeAllowedForRestriction(parsedBody.data.age, event.ageRestriction)) {
+    return NextResponse.json(
+      {
+        error: `No puedes comprar esta entrada porque el evento requiere edad minima ${event.ageRestriction}.`,
+      },
+      { status: 403 },
     );
   }
 
@@ -87,6 +98,7 @@ export async function POST(request: Request) {
       eventId: event.id,
       eventSlug: event.slug,
       buyerFullName: parsedBody.data.fullName,
+      buyerAge: String(parsedBody.data.age),
       buyerDni: parsedBody.data.dni.toUpperCase(),
       buyerPhone: parsedBody.data.phone,
       buyerEmail: parsedBody.data.email,

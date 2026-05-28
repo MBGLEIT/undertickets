@@ -138,6 +138,7 @@ export default async function EventDetailPage({
 
             <PurchaseTicketForm
               eventSlug={event.slug}
+              ageRestriction={event.ageRestriction}
               disabled={Boolean(disabledReason)}
               disabledReason={disabledReason}
             />

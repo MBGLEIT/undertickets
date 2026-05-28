@@ -10,9 +10,13 @@ export default function CheckoutSuccessPage() {
         Pago recibido
       </h1>
       <p className="text-base leading-7 text-muted">
-        Esta pantalla representa el regreso desde Stripe. Ojo con este detalle:
-        que el usuario llegue aqui no significa todavia que debamos emitir la
-        entrada. La confirmacion real la haremos mas adelante con el webhook.
+        Tu pago se ha procesado correctamente. Estamos terminando la
+        confirmacion de tu entrada y la recibirás por correo electronico en
+        unos instantes junto con el PDF y el codigo QR de acceso.
+      </p>
+      <p className="text-sm leading-7 text-muted">
+        Si no la ves enseguida, revisa tambien la bandeja de spam o correo no
+        deseado.
       </p>
       <Link
         href="/events"

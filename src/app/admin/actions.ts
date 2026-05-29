@@ -124,111 +124,50 @@ export async function adminLogoutToHomeAction() {
 }
 
 export async function createEventAction(formData: FormData) {
-  const eventsTable = getEventsTableClient();
-  const name = String(formData.get("name") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const imageUrlInput = String(formData.get("imageUrl") ?? "").trim() || null;
-  const posterFile = formData.get("poster") as File | null;
-  const ageRestriction =
-    (String(formData.get("ageRestriction") ?? "").trim() as "+16" | "+18" | "+21") ||
-    null;
-  const status = String(formData.get("status") ?? "draft") as
-    | "draft"
-    | "published"
-    | "sold_out"
-    | "cancelled";
-  const capacity = Number(formData.get("capacity") ?? 0);
-  const date = String(formData.get("date") ?? "");
-  const price = parseEuroToCents(String(formData.get("price") ?? ""));
+  try {
+    const eventsTable = getEventsTableClient();
+    const name = String(formData.get("name") ?? "").trim();
+    const location = String(formData.get("location") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+    const imageUrlInput = String(formData.get("imageUrl") ?? "").trim() || null;
+    const posterFile = formData.get("poster") as File | null;
+    const ageRestriction =
+      (String(formData.get("ageRestriction") ?? "").trim() as "+16" | "+18" | "+21") ||
+      null;
+    const status = String(formData.get("status") ?? "draft") as
+      | "draft"
+      | "published"
+      | "sold_out"
+      | "cancelled";
+    const capacity = Number(formData.get("capacity") ?? 0);
+    const date = String(formData.get("date") ?? "");
+    const price = parseEuroToCents(String(formData.get("price") ?? ""));
 
-  if (!name || !location || !description || !date || capacity <= 0) {
-    throw new Error("Faltan datos obligatorios para crear el evento.");
-  }
+    if (!name || !location || !description || !date || capacity <= 0) {
+      throw new Error("Faltan datos obligatorios para crear el evento.");
+    }
 
-  let slug = normalizeSlug(String(formData.get("slug") ?? "")) || normalizeSlug(name);
+    let slug = normalizeSlug(String(formData.get("slug") ?? "")) || normalizeSlug(name);
 
-  const { data: existingSlug } = await eventsTable
-    .select("id")
-    .eq("slug", slug)
-    .maybeSingle();
+    const { data: existingSlug } = await eventsTable
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
 
-  if (existingSlug) {
-    slug = `${slug}-${Date.now().toString().slice(-5)}`;
-  }
+    if (existingSlug) {
+      slug = `${slug}-${Date.now().toString().slice(-5)}`;
+    }
 
-  const uploadedPoster =
-    posterFile && posterFile.size > 0
-      ? await uploadEventPoster({
-          eventSlug: slug,
-          file: posterFile,
-        })
-      : null;
-  const imageUrl = uploadedPoster?.publicUrl ?? imageUrlInput;
+    const uploadedPoster =
+      posterFile && posterFile.size > 0
+        ? await uploadEventPoster({
+            eventSlug: slug,
+            file: posterFile,
+          })
+        : null;
+    const imageUrl = uploadedPoster?.publicUrl ?? imageUrlInput;
 
-  const { error } = await eventsTable.insert({
-    slug,
-    name,
-    location,
-    description,
-    image_url: imageUrl,
-    age_restriction: ageRestriction,
-    status,
-    capacity,
-    date: toIsoDateTimeLocal(date),
-    price,
-  });
-
-  if (error) {
-    throw new Error(`No se pudo crear el evento: ${error.message}`);
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/events");
-  revalidatePath("/admin/dashboard");
-  revalidatePath("/events");
-  await publishRealtimeUpdate("events", slug);
-  redirect("/admin/events?created=1");
-}
-
-export async function updateEventAction(formData: FormData) {
-  const eventsTable = getEventsTableClient();
-  const id = String(formData.get("id") ?? "");
-  const slug = normalizeSlug(String(formData.get("slug") ?? ""));
-  const name = String(formData.get("name") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const imageUrlInput = String(formData.get("imageUrl") ?? "").trim() || null;
-  const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
-  const removePoster = String(formData.get("removePoster") ?? "") === "on";
-  const posterFile = formData.get("poster") as File | null;
-  const ageRestriction =
-    (String(formData.get("ageRestriction") ?? "").trim() as "+16" | "+18" | "+21") ||
-    null;
-  const status = String(formData.get("status") ?? "draft") as
-    | "draft"
-    | "published"
-    | "sold_out"
-    | "cancelled";
-  const capacity = Number(formData.get("capacity") ?? 0);
-  const date = String(formData.get("date") ?? "");
-  const price = parseEuroToCents(String(formData.get("price") ?? ""));
-
-  let imageUrl = removePoster ? null : imageUrlInput;
-
-  if (posterFile && posterFile.size > 0) {
-    const uploadedPoster = await uploadEventPoster({
-      eventSlug: slug || normalizeSlug(name) || id,
-      file: posterFile,
-    });
-
-    imageUrl = uploadedPoster?.publicUrl ?? imageUrl;
-  } else if (!imageUrlInput && !removePoster) {
-    imageUrl = currentImageUrl;
-  }
-
-  const { error } = await eventsTable
-    .update({
+    const { error } = await eventsTable.insert({
       slug,
       name,
       location,
@@ -239,23 +178,96 @@ export async function updateEventAction(formData: FormData) {
       capacity,
       date: toIsoDateTimeLocal(date),
       price,
-    })
-    .eq("id", id);
+    });
 
-  if (error) {
-    throw new Error(`No se pudo actualizar el evento: ${error.message}`);
+    if (error) {
+      throw new Error(`No se pudo crear el evento: ${error.message}`);
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/events");
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/events");
+    await publishRealtimeUpdate("events", slug);
+    redirect("/admin/events?created=1");
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No se pudo crear el evento.";
+    redirect(`/admin/events?error=${encodeURIComponent(message)}`);
   }
+}
 
-  if ((posterFile && posterFile.size > 0) || removePoster) {
-    await deleteEventPosterByUrl(currentImageUrl);
+export async function updateEventAction(formData: FormData) {
+  try {
+    const eventsTable = getEventsTableClient();
+    const id = String(formData.get("id") ?? "");
+    const slug = normalizeSlug(String(formData.get("slug") ?? ""));
+    const name = String(formData.get("name") ?? "").trim();
+    const location = String(formData.get("location") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
+    const imageUrlInput = String(formData.get("imageUrl") ?? "").trim() || null;
+    const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
+    const removePoster = String(formData.get("removePoster") ?? "") === "on";
+    const posterFile = formData.get("poster") as File | null;
+    const ageRestriction =
+      (String(formData.get("ageRestriction") ?? "").trim() as "+16" | "+18" | "+21") ||
+      null;
+    const status = String(formData.get("status") ?? "draft") as
+      | "draft"
+      | "published"
+      | "sold_out"
+      | "cancelled";
+    const capacity = Number(formData.get("capacity") ?? 0);
+    const date = String(formData.get("date") ?? "");
+    const price = parseEuroToCents(String(formData.get("price") ?? ""));
+
+    let imageUrl = removePoster ? null : imageUrlInput;
+
+    if (posterFile && posterFile.size > 0) {
+      const uploadedPoster = await uploadEventPoster({
+        eventSlug: slug || normalizeSlug(name) || id,
+        file: posterFile,
+      });
+
+      imageUrl = uploadedPoster?.publicUrl ?? imageUrl;
+    } else if (!imageUrlInput && !removePoster) {
+      imageUrl = currentImageUrl;
+    }
+
+    const { error } = await eventsTable
+      .update({
+        slug,
+        name,
+        location,
+        description,
+        image_url: imageUrl,
+        age_restriction: ageRestriction,
+        status,
+        capacity,
+        date: toIsoDateTimeLocal(date),
+        price,
+      })
+      .eq("id", id);
+
+    if (error) {
+      throw new Error(`No se pudo actualizar el evento: ${error.message}`);
+    }
+
+    if ((posterFile && posterFile.size > 0) || removePoster) {
+      await deleteEventPosterByUrl(currentImageUrl);
+    }
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/events");
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/events");
+    await publishRealtimeUpdate("events", slug || id);
+    redirect("/admin/events?updated=1");
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No se pudo actualizar el evento.";
+    redirect(`/admin/events?error=${encodeURIComponent(message)}`);
   }
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/events");
-  revalidatePath("/admin/dashboard");
-  revalidatePath("/events");
-  await publishRealtimeUpdate("events", slug || id);
-  redirect("/admin/events?updated=1");
 }
 
 export async function deleteEventAction(formData: FormData) {

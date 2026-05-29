@@ -22,6 +22,7 @@ type AdminEventsPageProps = {
     created?: string;
     updated?: string;
     deleted?: string;
+    error?: string;
   }>;
 };
 
@@ -29,11 +30,21 @@ function FeedbackBanner({
   created,
   updated,
   deleted,
+  error,
 }: {
   created?: string;
   updated?: string;
   deleted?: string;
+  error?: string;
 }) {
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-[rgba(155,36,36,0.18)] bg-[rgba(155,36,36,0.08)] px-5 py-4 text-sm text-[rgb(155,36,36)]">
+        {error}
+      </div>
+    );
+  }
+
   const message = created
     ? "Evento creado correctamente."
     : updated
@@ -75,6 +86,7 @@ export default async function AdminEventsPage({
         created={params.created}
         updated={params.updated}
         deleted={params.deleted}
+        error={params.error}
       />
 
       <section className="rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_12px_30px_rgba(27,27,24,0.06)]">

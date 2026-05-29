@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { getMinimumAgeFromRestriction } from "@/lib/age-restrictions";
 
 type PurchaseTicketFormProps = {
   eventSlug: string;
@@ -22,13 +21,12 @@ export function PurchaseTicketForm({
   disabledReason = null,
 }: PurchaseTicketFormProps) {
   const [fullName, setFullName] = useState("");
-  const [age, setAge] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [dni, setDni] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const minimumAge = getMinimumAgeFromRestriction(ageRestriction);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +41,7 @@ export function PurchaseTicketForm({
         body: JSON.stringify({
           eventSlug,
           fullName,
-          age: Number(age),
+          birthDate,
           dni,
           phone,
           email,
@@ -86,21 +84,19 @@ export function PurchaseTicketForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <label
-            htmlFor="ticket-age"
+            htmlFor="ticket-birth-date"
             className="text-xs uppercase tracking-[0.18em] text-white/55"
           >
-            Edad
+            Fecha de nacimiento
           </label>
           <input
-            id="ticket-age"
-            type="number"
-            name="age"
+            id="ticket-birth-date"
+            type="date"
+            name="birthDate"
             required
-            min={minimumAge ?? 0}
-            max={120}
-            value={age}
-            onChange={(event) => setAge(event.target.value)}
-            placeholder={ageRestriction ? `Minimo ${ageRestriction}` : "18"}
+            max={new Date().toISOString().slice(0, 10)}
+            value={birthDate}
+            onChange={(event) => setBirthDate(event.target.value)}
             className="w-full rounded-2xl border border-white/15 bg-white/8 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/35"
           />
         </div>
@@ -172,8 +168,8 @@ export function PurchaseTicketForm({
 
       {ageRestriction ? (
         <p className="text-xs leading-6 text-[#ffcf9f]">
-          Este evento tiene restriccion de edad {ageRestriction}. Si la edad
-          indicada no la cumple, no se permitira continuar al pago.
+          Este evento tiene restriccion de edad {ageRestriction}. Si la fecha de
+          nacimiento indicada no la cumple, no se permitira continuar al pago.
         </p>
       ) : null}
 

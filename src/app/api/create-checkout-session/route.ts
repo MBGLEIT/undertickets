@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAgeAllowedForRestriction } from "@/lib/age-restrictions";
+import { isBirthDateAllowedForRestriction } from "@/lib/age-restrictions";
 import { getPublishedEventBySlug } from "@/lib/events";
 import { getStripeEnv } from "@/lib/env";
 import { createStripeServerClient } from "@/lib/stripe";
@@ -8,7 +8,7 @@ import { createStripeServerClient } from "@/lib/stripe";
 const createCheckoutSessionSchema = z.object({
   eventSlug: z.string().min(1),
   fullName: z.string().trim().min(5).max(120),
-  age: z.number().int().min(0).max(120),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dni: z.string().trim().min(8).max(16),
   phone: z.string().trim().min(7).max(20),
   email: z.string().email(),
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isAgeAllowedForRestriction(parsedBody.data.age, event.ageRestriction)) {
+  if (!isBirthDateAllowedForRestriction(parsedBody.data.birthDate, event.ageRestriction)) {
     return NextResponse.json(
       {
         error: `No puedes comprar esta entrada porque el evento requiere edad minima ${event.ageRestriction}.`,
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       eventId: event.id,
       eventSlug: event.slug,
       buyerFullName: parsedBody.data.fullName,
-      buyerAge: String(parsedBody.data.age),
+      buyerBirthDate: parsedBody.data.birthDate,
       buyerDni: parsedBody.data.dni.toUpperCase(),
       buyerPhone: parsedBody.data.phone,
       buyerEmail: parsedBody.data.email,

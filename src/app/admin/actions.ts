@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ADMIN_PASSWORD, clearAdminSession, createAdminSession } from "@/lib/admin-auth";
-import { isAgeAllowedForRestriction } from "@/lib/age-restrictions";
+import { isBirthDateAllowedForRestriction } from "@/lib/age-restrictions";
 import { deleteEventPosterByUrl, uploadEventPoster } from "@/lib/event-posters";
 import { publishRealtimeUpdate } from "@/lib/realtime-updates";
 import { processTicketEmail } from "@/lib/ticket-email";
@@ -290,12 +290,12 @@ export async function createManualTicketAction(formData: FormData) {
   const ticketsTable = getTicketsTableClient();
   const eventId = String(formData.get("eventId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
-  const age = Number(formData.get("age") ?? 0);
+  const birthDate = String(formData.get("birthDate") ?? "").trim();
   const dni = String(formData.get("dni") ?? "").trim().toUpperCase();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
-  if (!eventId || !fullName || !dni || !phone || !email || !Number.isFinite(age) || age <= 0) {
+  if (!eventId || !fullName || !birthDate || !dni || !phone || !email) {
     throw new Error("Faltan datos obligatorios para generar la entrada.");
   }
 
@@ -331,7 +331,7 @@ export async function createManualTicketAction(formData: FormData) {
     throw new Error("Ese evento ya no tiene entradas disponibles.");
   }
 
-  if (!isAgeAllowedForRestriction(age, typedEventDetails?.age_restriction ?? null)) {
+  if (!isBirthDateAllowedForRestriction(birthDate, typedEventDetails?.age_restriction ?? null)) {
     throw new Error(
       `No se puede generar la entrada porque el evento requiere edad minima ${typedEventDetails?.age_restriction}.`,
     );
@@ -346,7 +346,7 @@ export async function createManualTicketAction(formData: FormData) {
     id: ticketId,
     event_id: eventId,
     full_name: fullName,
-    age,
+    birth_date: birthDate,
     dni,
     phone,
     email,

@@ -118,12 +118,10 @@ export function ManualTicketForm({ action, events }: ManualTicketFormProps) {
         className="rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent"
       />
       <input
-        name="age"
-        type="number"
-        min="0"
-        max="120"
+        name="birthDate"
+        type="date"
         required
-        placeholder="Edad"
+        max={new Date().toISOString().slice(0, 10)}
         className="rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-accent"
       />
       <input

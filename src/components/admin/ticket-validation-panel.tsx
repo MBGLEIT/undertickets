@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { QrScanner } from "@/components/admin/qr-scanner";
-import { formatEventDate } from "@/lib/formatters";
+import { formatEventDate, formatShortDate } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { TicketValidationResult } from "@/lib/ticket-validation";
 
@@ -294,7 +294,7 @@ export function TicketValidationPanel({
             <strong>Asistente:</strong> {result.ticket.fullName}
           </p>
           <p>
-            <strong>Edad:</strong> {result.ticket.age}
+            <strong>Fecha de nacimiento:</strong> {formatShortDate(result.ticket.birthDate)}
           </p>
           <p>
             <strong>DNI:</strong> {result.ticket.dni}

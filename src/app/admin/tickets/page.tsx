@@ -9,6 +9,7 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ManualTicketForm } from "@/components/admin/manual-ticket-form";
 import { RouteRealtimeRefresh } from "@/components/realtime/route-realtime-refresh";
 import { getAdminTicketOverview } from "@/lib/admin-data";
+import { formatShortDate } from "@/lib/formatters";
 
 export const dynamic = "force-dynamic";
 
@@ -206,7 +207,9 @@ export default async function AdminTicketsPage({
                     <h3 className="text-xl font-semibold">{ticket.fullName}</h3>
                     <p className="text-sm text-muted">{ticket.eventName}</p>
                     <p className="text-sm text-muted">{ticket.email}</p>
-                    <p className="text-sm text-muted">Edad: {ticket.age}</p>
+                    <p className="text-sm text-muted">
+                      Fecha de nacimiento: {formatShortDate(ticket.birthDate)}
+                    </p>
                     <p className="text-sm text-muted">DNI: {ticket.dni}</p>
                     <p className="text-sm text-muted">Telefono: {ticket.phone}</p>
                   </div>

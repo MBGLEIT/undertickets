@@ -1,22 +1,54 @@
 alter table public.tickets
-  add column if not exists age integer;
+  add column if not exists birth_date date;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tickets'
+      and column_name = 'age'
+  ) then
+    execute $sql$
+      update public.tickets
+      set birth_date = coalesce(
+        birth_date,
+        make_date(greatest(extract(year from current_date)::int - age, 1900), 1, 1)
+      )
+      where birth_date is null
+        and age is not null
+    $sql$;
+  end if;
+end $$;
 
 update public.tickets
-set age = coalesce(age, 18)
-where age is null;
+set birth_date = coalesce(birth_date, date '2008-01-01')
+where birth_date is null;
 
 alter table public.tickets
-  alter column age set not null;
+  alter column birth_date set not null;
 
 alter table public.tickets
-  drop constraint if exists tickets_age_check,
-  add constraint tickets_age_check check (age between 0 and 120);
+  drop constraint if exists tickets_birth_date_check,
+  add constraint tickets_birth_date_check check (
+    birth_date >= date '1900-01-01'
+    and birth_date <= current_date
+  );
+
+alter table public.tickets
+  drop constraint if exists tickets_age_check;
+
+alter table public.tickets
+  drop column if exists age;
+
+drop function if exists public.issue_ticket(uuid, uuid, text, integer, text, text, text, text, text, text);
 
 create or replace function public.issue_ticket(
   p_event_id uuid,
   p_ticket_id uuid,
   p_full_name text,
-  p_age integer,
+  p_birth_date date,
   p_dni text,
   p_phone text,
   p_email text,
@@ -71,7 +103,7 @@ begin
     id,
     event_id,
     full_name,
-    age,
+    birth_date,
     dni,
     phone,
     email,
@@ -83,7 +115,7 @@ begin
     p_ticket_id,
     p_event_id,
     p_full_name,
-    p_age,
+    p_birth_date,
     p_dni,
     p_phone,
     p_email,
@@ -98,5 +130,5 @@ begin
 end;
 $$;
 
-revoke all on function public.issue_ticket(uuid, uuid, text, integer, text, text, text, text, text, text) from public;
-grant execute on function public.issue_ticket(uuid, uuid, text, integer, text, text, text, text, text, text) to service_role;
+revoke all on function public.issue_ticket(uuid, uuid, text, date, text, text, text, text, text, text) from public;
+grant execute on function public.issue_ticket(uuid, uuid, text, date, text, text, text, text, text, text) to service_role;

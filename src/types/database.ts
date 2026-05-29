@@ -62,7 +62,7 @@ export type Database = {
           id: string;
           event_id: string;
           full_name: string;
-          age: number;
+          birth_date: string;
           dni: string;
           phone: string;
           email: string;
@@ -77,7 +77,7 @@ export type Database = {
           id?: string;
           event_id: string;
           full_name: string;
-          age: number;
+          birth_date: string;
           dni: string;
           phone: string;
           email: string;
@@ -92,7 +92,7 @@ export type Database = {
           id?: string;
           event_id?: string;
           full_name?: string;
-          age?: number;
+          birth_date?: string;
           dni?: string;
           phone?: string;
           email?: string;
@@ -196,7 +196,7 @@ export type Database = {
           p_event_id: string;
           p_ticket_id: string;
           p_full_name: string;
-          p_age: number;
+          p_birth_date: string;
           p_dni: string;
           p_phone: string;
           p_email: string;

@@ -6,7 +6,7 @@ import { formatEventShortDate, formatPrice } from "@/lib/formatters";
 export type TicketWithEvent = {
   id: string;
   full_name: string;
-  age: number;
+  birth_date: string;
   dni: string;
   phone: string;
   email: string;
@@ -114,7 +114,7 @@ export async function getTicketWithEventById(ticketId: string) {
   const { data, error } = await supabase
     .from("tickets")
     .select(
-      "id, full_name, age, dni, phone, email, used, used_at, stripe_session_id, qr_code_value, alphanumeric_code, created_at, events(id, slug, name, date, location, description, price, capacity, status)",
+      "id, full_name, birth_date, dni, phone, email, used, used_at, stripe_session_id, qr_code_value, alphanumeric_code, created_at, events(id, slug, name, date, location, description, price, capacity, status)",
     )
     .eq("id", ticketId)
     .single();
@@ -126,7 +126,7 @@ export async function getTicketWithEventById(ticketId: string) {
   const ticketRow = data as unknown as {
     id: string;
     full_name: string;
-    age: number;
+    birth_date: string;
     dni: string;
     phone: string;
     email: string;
@@ -150,7 +150,7 @@ export async function getTicketWithEventById(ticketId: string) {
   return {
     id: ticketRow.id,
     full_name: ticketRow.full_name,
-    age: ticketRow.age,
+    birth_date: ticketRow.birth_date,
     dni: ticketRow.dni,
     phone: ticketRow.phone,
     email: ticketRow.email,

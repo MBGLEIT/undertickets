@@ -248,7 +248,7 @@ export async function generateTicketPdfBuffer(ticket: TicketWithEvent) {
     { label: "Fecha", value: formatEventShortDate(ticket.event.date), maxChars: 17 },
     { label: "Precio", value: formatPrice(ticket.event.price), maxChars: 17 },
     { label: "Codigo", value: ticket.alphanumeric_code, maxChars: 17 },
-    { label: "Ticket ID", value: ticket.id, maxChars: 17 },
+    { label: "Ticket ID", value: ticket.id, maxChars: 28, stacked: true },
   ];
 
   page.drawRectangle({
@@ -287,16 +287,16 @@ export async function generateTicketPdfBuffer(ticket: TicketWithEvent) {
 
     wrappedLines.forEach((wrappedLine, wrappedIndex) => {
       page.drawText(wrappedLine, {
-        x: wrappedIndex === 0 ? valueX : 62,
-        y: lineY - wrappedIndex * 16,
+        x: line.stacked ? 62 : wrappedIndex === 0 ? valueX : 62,
+        y: line.stacked ? lineY - 16 - wrappedIndex * 16 : lineY - wrappedIndex * 16,
         size: 11.5,
         font: bodyFont,
         color: rgb(0.25, 0.24, 0.22),
-        maxWidth: wrappedIndex === 0 ? 244 - (valueX - 62) : 244,
+        maxWidth: line.stacked ? 244 : wrappedIndex === 0 ? 244 - (valueX - 62) : 244,
       });
     });
 
-    lineY -= wrappedLines.length * 16 + 8;
+    lineY -= (line.stacked ? 16 : 0) + wrappedLines.length * 16 + 8;
   });
 
   page.drawRectangle({

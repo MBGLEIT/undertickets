@@ -2,6 +2,7 @@ import QRCode from "qrcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatEventShortDate, formatPrice } from "@/lib/formatters";
+import { getAgeFromBirthDate } from "@/lib/age-restrictions";
 
 export type TicketWithEvent = {
   id: string;
@@ -99,6 +100,16 @@ function wrapText(text: string, maxCharsPerLine: number) {
   }
 
   return lines;
+}
+
+function formatBirthDateForTicket(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+  const age = getAgeFromBirthDate(value);
+
+  return `${day}/${month}/${year}${age !== null ? ` (${age})` : ""}`;
 }
 
 export function buildTicketPdfFilename(ticket: TicketWithEvent) {
@@ -225,14 +236,19 @@ export async function generateTicketPdfBuffer(ticket: TicketWithEvent) {
   });
 
   const lines = [
-    { label: "Nombre y apellidos", value: ticket.full_name, maxChars: 28 },
-    { label: "DNI", value: ticket.dni, maxChars: 28 },
-    { label: "Telefono", value: ticket.phone, maxChars: 28 },
-    { label: "Ubicacion", value: ticket.event.location, maxChars: 28 },
-    { label: "Fecha", value: formatEventShortDate(ticket.event.date), maxChars: 28 },
-    { label: "Precio", value: formatPrice(ticket.event.price), maxChars: 28 },
-    { label: "Codigo", value: ticket.alphanumeric_code, maxChars: 28 },
-    { label: "Ticket ID", value: ticket.id, maxChars: 28 },
+    { label: "Asistente", value: ticket.full_name, maxChars: 17 },
+    {
+      label: "Fecha Nacimiento",
+      value: formatBirthDateForTicket(ticket.birth_date),
+      maxChars: 17,
+    },
+    { label: "DNI", value: ticket.dni, maxChars: 17 },
+    { label: "Telefono", value: ticket.phone, maxChars: 17 },
+    { label: "Ubicacion", value: ticket.event.location, maxChars: 17 },
+    { label: "Fecha", value: formatEventShortDate(ticket.event.date), maxChars: 17 },
+    { label: "Precio", value: formatPrice(ticket.event.price), maxChars: 17 },
+    { label: "Codigo", value: ticket.alphanumeric_code, maxChars: 17 },
+    { label: "Ticket ID", value: ticket.id, maxChars: 17 },
   ];
 
   page.drawRectangle({
@@ -256,17 +272,28 @@ export async function generateTicketPdfBuffer(ticket: TicketWithEvent) {
   let lineY = 616;
 
   lines.forEach((line) => {
-    const wrappedLines = wrapText(`${line.label}: ${line.value}`, line.maxChars);
+    const wrappedLines = wrapText(line.value, line.maxChars);
+    const labelText = `${line.label}:`;
+    const labelWidth = titleFont.widthOfTextAtSize(labelText, 11.5);
+    const valueX = 62 + labelWidth + 4;
+
+    page.drawText(labelText, {
+      x: 62,
+      y: lineY,
+      size: 11.5,
+      font: titleFont,
+      color: rgb(0.12, 0.11, 0.1),
+    });
 
     wrappedLines.forEach((wrappedLine, wrappedIndex) => {
       page.drawText(wrappedLine, {
-      x: 62,
-      y: lineY - wrappedIndex * 16,
-      size: 11.5,
-      font: bodyFont,
-      color: rgb(0.25, 0.24, 0.22),
-      maxWidth: 244,
-    });
+        x: wrappedIndex === 0 ? valueX : 62,
+        y: lineY - wrappedIndex * 16,
+        size: 11.5,
+        font: bodyFont,
+        color: rgb(0.25, 0.24, 0.22),
+        maxWidth: wrappedIndex === 0 ? 244 - (valueX - 62) : 244,
+      });
     });
 
     lineY -= wrappedLines.length * 16 + 8;

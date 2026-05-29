@@ -81,7 +81,7 @@ export function PurchaseTicketForm({
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="space-y-4">
         <div className="space-y-2">
           <label
             htmlFor="ticket-birth-date"
@@ -120,7 +120,7 @@ export function PurchaseTicketForm({
           />
         </div>
 
-        <div className="space-y-2 xl:col-span-2">
+        <div className="space-y-2">
           <label
             htmlFor="ticket-phone"
             className="text-xs uppercase tracking-[0.18em] text-white/55"

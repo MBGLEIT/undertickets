@@ -124,6 +124,8 @@ export async function adminLogoutToHomeAction() {
 }
 
 export async function createEventAction(formData: FormData) {
+  let redirectTo = "/admin/events?created=1";
+
   try {
     const eventsTable = getEventsTableClient();
     const name = String(formData.get("name") ?? "").trim();
@@ -189,15 +191,18 @@ export async function createEventAction(formData: FormData) {
     revalidatePath("/admin/dashboard");
     revalidatePath("/events");
     await publishRealtimeUpdate("events", slug);
-    redirect("/admin/events?created=1");
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo crear el evento.";
-    redirect(`/admin/events?error=${encodeURIComponent(message)}`);
+    redirectTo = `/admin/events?error=${encodeURIComponent(message)}`;
   }
+
+  redirect(redirectTo);
 }
 
 export async function updateEventAction(formData: FormData) {
+  let redirectTo = "/admin/events?updated=1";
+
   try {
     const eventsTable = getEventsTableClient();
     const id = String(formData.get("id") ?? "");
@@ -262,12 +267,13 @@ export async function updateEventAction(formData: FormData) {
     revalidatePath("/admin/dashboard");
     revalidatePath("/events");
     await publishRealtimeUpdate("events", slug || id);
-    redirect("/admin/events?updated=1");
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "No se pudo actualizar el evento.";
-    redirect(`/admin/events?error=${encodeURIComponent(message)}`);
+    redirectTo = `/admin/events?error=${encodeURIComponent(message)}`;
   }
+
+  redirect(redirectTo);
 }
 
 export async function deleteEventAction(formData: FormData) {

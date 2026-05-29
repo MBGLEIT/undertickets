@@ -2,7 +2,6 @@ import QRCode from "qrcode";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatEventShortDate, formatPrice } from "@/lib/formatters";
-import { getAgeFromBirthDate } from "@/lib/age-restrictions";
 
 export type TicketWithEvent = {
   id: string;
@@ -107,9 +106,8 @@ function formatBirthDateForTicket(value: string) {
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = String(date.getFullYear()).slice(-2);
-  const age = getAgeFromBirthDate(value);
 
-  return `${day}/${month}/${year}${age !== null ? ` (${age})` : ""}`;
+  return `${day}/${month}/${year}`;
 }
 
 export function buildTicketPdfFilename(ticket: TicketWithEvent) {
